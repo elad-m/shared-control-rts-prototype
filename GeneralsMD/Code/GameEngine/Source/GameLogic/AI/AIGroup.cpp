@@ -31,6 +31,7 @@
 #include "Common/ActionManager.h"
 #include "Common/BuildAssistant.h"
 #include "Common/CRCDebug.h"
+#include "Common/GlobalData.h"
 #include "Common/Player.h"
 #include "Common/SpecialPower.h"
 #include "Common/ThingTemplate.h"
@@ -271,6 +272,19 @@ void AIGroup::removeAll()
 /**
  * If the group contains any objects not owned by ownerPlayer, return TRUE.
  */
+static Bool isSharedControlAuthorized(const Player *ownerPlayer, const Object *obj)
+{
+	const Player *controllingPlayer = obj->getControllingPlayer();
+
+	return TheGlobalData != NULL
+		&& TheGlobalData->m_sharedControl
+		&& ownerPlayer != NULL
+		&& controllingPlayer != NULL
+		&& ownerPlayer->getPlayerType() == PLAYER_HUMAN
+		&& controllingPlayer->getPlayerType() == PLAYER_HUMAN
+		&& ownerPlayer->getRelationship(obj->getTeam()) == ALLIES;
+}
+
 Bool AIGroup::containsAnyObjectsNotOwnedByPlayer( const Player *ownerPlayer )
 {
 	ListObjectPtrIt it;
@@ -281,7 +295,7 @@ Bool AIGroup::containsAnyObjectsNotOwnedByPlayer( const Player *ownerPlayer )
 			continue;
 		}
 
-		if (obj->getControllingPlayer() != ownerPlayer) {
+		if (obj->getControllingPlayer() != ownerPlayer && !isSharedControlAuthorized(ownerPlayer, obj)) {
 			return TRUE;
 		}
 	}
@@ -302,7 +316,7 @@ Bool AIGroup::removeAnyObjectsNotOwnedByPlayer( const Player *ownerPlayer )
 			continue;
 		}
 
-		if (obj->getControllingPlayer() != ownerPlayer) {
+		if (obj->getControllingPlayer() != ownerPlayer && !isSharedControlAuthorized(ownerPlayer, obj)) {
 			// Advance the iterator first, its about to become invalid.
 			++it;
 

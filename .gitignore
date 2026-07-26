@@ -9,6 +9,10 @@
 *.user
 *.ncb
 /build*
+/artifacts/
+/docs/LOCAL_TWO_PC_TESTING.txt
+/scripts/deploy-zero-hour-lan-client.ps1
+/scripts/run-zero-hour-dev.ps1
 nbproject/
 project/
 doxygen/

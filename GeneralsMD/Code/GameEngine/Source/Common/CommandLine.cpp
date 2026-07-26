@@ -483,6 +483,24 @@ Int parseYRes(char *args[], int num)
 	return 1;
 }
 
+Int parseMaxCameraHeight(char *args[], int num)
+{
+	if (num > 1)
+	{
+		const Real height = static_cast<Real>(atof(args[1]));
+		if (height >= 100.0f && height <= 1000.0f)
+			TheWritableGlobalData->m_maxCameraHeight = height;
+		return 2;
+	}
+	return 1;
+}
+
+Int parseSharedControl(char *args[], int num)
+{
+	TheWritableGlobalData->m_sharedControl = TRUE;
+	return 1;
+}
+
 #if defined(RTS_DEBUG)
 //=============================================================================
 //=============================================================================
@@ -1151,6 +1169,8 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-noShellAnim", parseNoWindowAnimation }, // TheSuperHackers @tweak Is now available in Release builds.
 	{ "-xres", parseXRes },
 	{ "-yres", parseYRes },
+	{ "-maxCameraHeight", parseMaxCameraHeight },
+	{ "-sharedControl", parseSharedControl },
 	{ "-fullVersion", parseFullVersion },
 	{ "-particleEdit", parseParticleEdit },
 	{ "-scriptDebug", parseScriptDebug },

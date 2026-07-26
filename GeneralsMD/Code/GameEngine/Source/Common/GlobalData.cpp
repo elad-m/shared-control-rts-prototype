@@ -1056,6 +1056,7 @@ GlobalData::GlobalData()
 	//m_allAdvice = FALSE;
 
 	m_useAlternateMouse = FALSE;
+	m_sharedControl = FALSE;
 #if RTS_GENERALS
 	// disable mouse scrolling in alternate mouse mode, per Harvard 7/15/03
 	m_useRightMouseScrollWithAlternateMouse = FALSE;

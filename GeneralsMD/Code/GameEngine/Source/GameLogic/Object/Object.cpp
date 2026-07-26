@@ -36,6 +36,7 @@
 #include "Common/GameEngine.h"
 #include "Common/GameState.h"
 #include "Common/GameUtility.h"
+#include "Common/GlobalData.h"
 #include "Common/ModuleFactory.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
@@ -1770,7 +1771,19 @@ Bool Object::isLogicallyVisible() const
 //=============================================================================
 Bool Object::isLocallyControlled() const
 {
-	return getControllingPlayer() == ThePlayerList->getLocalPlayer();
+	Player *localPlayer = ThePlayerList->getLocalPlayer();
+	Player *controllingPlayer = getControllingPlayer();
+
+	if (controllingPlayer == localPlayer)
+		return TRUE;
+
+	return TheGlobalData != NULL
+		&& TheGlobalData->m_sharedControl
+		&& localPlayer != NULL
+		&& controllingPlayer != NULL
+		&& localPlayer->getPlayerType() == PLAYER_HUMAN
+		&& controllingPlayer->getPlayerType() == PLAYER_HUMAN
+		&& localPlayer->getRelationship(getTeam()) == ALLIES;
 }
 
 //=============================================================================

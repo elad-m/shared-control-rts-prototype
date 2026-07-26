@@ -1,3 +1,21 @@
+# Shared Control RTS Prototype — Unofficial Modified Version
+
+This branch contains an experimental, independently developed shared-control
+mode. Two allied human players can select and command each other's units in a
+LAN match when every participating client launches with `-sharedControl`.
+
+This is a modified version of the GPL-covered engine source. It is not an
+original Electronic Arts release, is not endorsed or supported by Electronic
+Arts, and provides no retail game data. Players must supply their own
+legitimately obtained installation. See [SHARED_CONTROL.md](SHARED_CONTROL.md)
+for installation, testing, known limitations, and binary-release instructions.
+
+The existing GPLv3 license and its additional terms remain unchanged in
+[LICENSE.md](LICENSE.md). Command & Conquer, Generals, Zero Hour, Electronic
+Arts, and related marks belong to their respective owners.
+
+---
+
 [![GitHub Release](https://img.shields.io/github/v/release/TheSuperHackers/GeneralsGameCode?include_prereleases&sort=date&display_name=tag&style=flat&label=Release)](https://github.com/TheSuperHackers/GeneralsGameCode/releases)
 ![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/3)
 ![GitHub milestone details](https://img.shields.io/github/milestones/progress-percent/TheSuperHackers/GeneralsGameCode/1)
