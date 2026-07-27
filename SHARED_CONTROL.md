@@ -11,10 +11,16 @@ With shared control enabled, allied human players can:
 - select and move each other's units;
 - issue Stop, Guard, Attack Move, and ordinary attack orders;
 - command mixed selections containing units from multiple allied armies; and
-- issue simultaneous orders to the same allied units.
+- issue simultaneous orders to the same allied units;
+- see allied Guard and special-power targeting radii; and
+- see rally-point markers and paths for allied production buildings.
 
 The prototype preserves each unit's original owner. It does not merge armies,
 resources, general points, production, defeat states, or player colors.
+
+Enemy units remain viewable but cannot be commanded. Production ordered through
+an allied building is paid for by that building's owner, and the completed unit
+belongs to that owner.
 
 ## Requirements
 
@@ -52,10 +58,8 @@ uncontrollable.
 
 ## Known limitations
 
-- Some ownership-specific visual indicators are missing for allied units,
-  including the visible Guard radius.
 - Allied superweapons can be commanded by selecting the allied building, but
-  their buttons may not appear in the other player's global shortcut panel.
+  their buttons do not yet appear in the other player's global shortcut panel.
 - Pilots cannot currently enter allied vehicles.
 - Units owned by different allies cannot currently share one garrisoned
   building.
