@@ -29,6 +29,7 @@
 
 #define DEFINE_SHADOW_NAMES
 
+#include "Common/GlobalData.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/Xfer.h"
@@ -66,8 +67,18 @@ void RadiusDecalTemplate::createRadiusDecal(const Coord3D& pos, Real radius, con
 	// it is now considered nonEmpty, regardless of the state of m_decal, etc
 	result.m_empty = false;
 
+	const Player *localPlayer = ThePlayerList->getLocalPlayer();
+	const Bool visibleThroughSharedControl =
+			TheGlobalData != nullptr &&
+			TheGlobalData->m_sharedControl &&
+			localPlayer != nullptr &&
+			localPlayer->getPlayerType() == PLAYER_HUMAN &&
+			owningPlayer->getPlayerType() == PLAYER_HUMAN &&
+			localPlayer->getRelationship(owningPlayer->getDefaultTeam()) == ALLIES;
+
 	if (!m_onlyVisibleToOwningPlayer ||
-			owningPlayer->getPlayerIndex() == ThePlayerList->getLocalPlayer()->getPlayerIndex())
+			(localPlayer != nullptr && owningPlayer->getPlayerIndex() == localPlayer->getPlayerIndex()) ||
+			visibleThroughSharedControl)
 	{
 		Shadow::ShadowTypeInfo decalInfo;
 		decalInfo.allowUpdates = FALSE;										// shadow texture will never update

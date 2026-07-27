@@ -232,7 +232,7 @@ void W3DWaypointBuffer::drawWaypoints(RenderInfoClass &rinfo)
 			Int numPoints = 0;
 			if( obj )
 			{
-				if ( obj->getControllingPlayer() != rts::getObservedOrLocalPlayer())
+				if ( obj->getControllingPlayer() != rts::getObservedOrLocalPlayer() && !obj->isLocallyControlled())
 					continue;
 
 
