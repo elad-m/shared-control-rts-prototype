@@ -512,8 +512,12 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			if( obj == nullptr || upgradeT == nullptr )
 				break;
 
+			Player *upgradePlayer = obj->getControllingPlayer();
+			if( upgradePlayer == nullptr )
+				break;
+
 			// make sure the player can really make this
-			if( TheUpgradeCenter->canAffordUpgrade( ThePlayerList->getLocalPlayer(), upgradeT, TRUE ) == FALSE )
+			if( TheUpgradeCenter->canAffordUpgrade( upgradePlayer, upgradeT, TRUE ) == FALSE )
 			{
 				break;
 			}
@@ -547,8 +551,12 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			if( upgradeT == nullptr )
 				break;
 
+			Player *upgradePlayer = obj ? obj->getControllingPlayer() : ThePlayerList->getLocalPlayer();
+			if( upgradePlayer == nullptr )
+				break;
+
 			//Make sure the player can really make this
-			if( TheUpgradeCenter->canAffordUpgrade( ThePlayerList->getLocalPlayer(), upgradeT, TRUE ) == FALSE )
+			if( TheUpgradeCenter->canAffordUpgrade( upgradePlayer, upgradeT, TRUE ) == FALSE )
 			{
 				//Kris: Disabled because we can get a valid reason for not being able to afford the upgrade!
 				//TheInGameUI->message( "upgrade unsupported in commandprocessing." );

@@ -973,7 +973,8 @@ bool GameLogic::onSetRallyPoint(MAYBE_UNUSED GameMessage *msg)
 #if !RETAIL_COMPATIBLE_CRC
 	// TheSuperHackers @fix stephanmeesters 11/03/2026 Validate the owner of the source object
 	Player *msgPlayer = getMessagePlayer(msg);
-	if ( obj->getControllingPlayer() != msgPlayer )
+	if ( obj->getControllingPlayer() != msgPlayer
+			&& !isSharedControlAuthorized(msgPlayer, obj) )
 	{
 		DEBUG_CRASH( ("MSG_SET_RALLY_POINT: Player '%ls' attempted to set the rally point of object '%s' owned by player '%ls'.",
 			msgPlayer->getPlayerDisplayName().str(),
@@ -1518,7 +1519,8 @@ bool GameLogic::onExit(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &currentlySelec
 		return false;
 
 	// sanity, the player must actually control this object
-	if( objectWantingToExit->getControllingPlayer() != msgPlayer )
+	if( objectWantingToExit->getControllingPlayer() != msgPlayer
+			&& !isSharedControlAuthorized(msgPlayer, objectWantingToExit) )
 		return false;
 
 	objectWantingToExit->releaseWeaponLock(LOCKED_TEMPORARILY);	// release any temporary locks.
@@ -1809,7 +1811,8 @@ bool GameLogic::onCancelUpgrade(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &curre
 		return false;
 
 	// the player must actually control the producer object
-	if( producer->getControllingPlayer() != msgPlayer )
+	if( producer->getControllingPlayer() != msgPlayer
+			&& !isSharedControlAuthorized(msgPlayer, producer) )
 		return false;
 
 	// producer must have a production update
@@ -1872,7 +1875,8 @@ bool GameLogic::onCancelUnitCreate(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &cu
 		return false;
 
 	// sanity, the player must control the producer
-	if( producer->getControllingPlayer() != msgPlayer )
+	if( producer->getControllingPlayer() != msgPlayer
+			&& !isSharedControlAuthorized(msgPlayer, producer) )
 		return false;
 
 	// get the unit production interface
@@ -1948,7 +1952,8 @@ bool GameLogic::onDozerCancelConstruct(MAYBE_UNUSED GameMessage *msg, AIGroupPtr
 		return false;
 
 	// the player sending this message must actually control this building
-	if( building->getControllingPlayer() != msgPlayer )
+	if( building->getControllingPlayer() != msgPlayer
+			&& !isSharedControlAuthorized(msgPlayer, building) )
 		return false;
 
 	// Check to make sure it is actually under construction
@@ -1958,8 +1963,11 @@ bool GameLogic::onDozerCancelConstruct(MAYBE_UNUSED GameMessage *msg, AIGroupPtr
 	// OK, refund the money to the player, unless it is a rebuilding Hole.
 	if( !building->testStatus(OBJECT_STATUS_RECONSTRUCTING))
 	{
-		Money *money = msgPlayer->getMoney();
-		UnsignedInt amount = building->getTemplate()->calcCostToBuild( msgPlayer );
+		Player *buildingPlayer = building->getControllingPlayer();
+		if( buildingPlayer == nullptr )
+			return false;
+		Money *money = buildingPlayer->getMoney();
+		UnsignedInt amount = building->getTemplate()->calcCostToBuild( buildingPlayer );
 		money->deposit( amount, TRUE, FALSE );
 	}
 
