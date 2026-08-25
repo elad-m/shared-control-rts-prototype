@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Multi-Select Drone Test</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10140f;
+      --panel: #192018;
+      --panel-2: #222b20;
+      --border: #3f513b;
+      --text: #edf2e9;
+      --muted: #aebaa9;
+      --accent: #8fbd63;
+      --accent-2: #d2a94b;
+      --danger: #df776f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(96, 130, 69, .25), transparent 34rem),
+        var(--bg);
+      color: var(--text);
+      font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    main { width: min(920px, calc(100% - 32px)); margin: 36px auto 80px; }
+    h1 { margin: 0 0 6px; font-size: clamp(28px, 5vw, 44px); letter-spacing: -.035em; }
+    h2 { margin: 0; font-size: 20px; }
+    p { margin: 6px 0; }
+    .muted { color: var(--muted); }
+    .summary, section {
+      background: rgba(25, 32, 24, .94);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: 0 14px 40px rgba(0, 0, 0, .22);
+    }
+    .summary { margin: 24px 0; padding: 18px; }
+    .summary-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    progress { flex: 1; min-width: 220px; height: 14px; accent-color: var(--accent); }
+    #progressText { font-variant-numeric: tabular-nums; font-weight: 700; }
+    section { margin-top: 16px; overflow: hidden; }
+    section > header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+      background: var(--panel-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .badge {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 2px 9px;
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    ol { list-style: none; margin: 0; padding: 8px 18px 14px; }
+    li { border-bottom: 1px solid rgba(63, 81, 59, .55); }
+    li:last-child { border-bottom: 0; }
+    label {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 10px;
+      padding: 13px 2px;
+      cursor: pointer;
+    }
+    input[type="checkbox"] { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--accent); }
+    input:checked + span { color: var(--muted); text-decoration: line-through; }
+    strong { color: #fff; }
+    code { color: #d9e8cd; background: #11170f; border-radius: 5px; padding: 1px 5px; }
+    .note { display: block; color: var(--muted); font-size: 14px; margin-top: 3px; }
+    textarea {
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #11170f;
+      color: var(--text);
+      font: inherit;
+    }
+    .notes { padding: 16px 18px 18px; }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 8px 12px;
+      background: #283325;
+      color: var(--text);
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent); }
+    .warning { color: var(--accent-2); }
+    .footer-actions { margin-top: 18px; display: flex; justify-content: flex-end; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Multi-Select Drone Test</h1>
+      <p class="muted">Zero Hour LAN prototype · multi-select object-upgrade fix <code>93BB139A…FA546</code></p>
+    </header>
+
+    <div class="summary">
+      <div class="summary-row">
+        <strong id="progressText">0 / 5 complete</strong>
+        <progress id="progress" value="0" max="5"></progress>
+      </div>
+      <p class="muted">Checks and notes are saved automatically in this browser.</p>
+    </div>
+
+    <section>
+      <header><h2>1. Start the match</h2><span class="badge">Setup</span></header>
+      <ol>
+        <li><label><input type="checkbox" data-test="drone-setup"><span>A hosts and B joins. Choose USA for both allied players, then build at least three identical drone-capable vehicles for each army.<span class="note">Keep enough money in both armies to buy a drone for every selected vehicle.</span></span></label></li>
+      </ol>
+    </section>
+
+    <section>
+      <header><h2>2. Test A’s own group</h2><span class="badge">Regression</span></header>
+      <ol>
+        <li><label><input type="checkbox" data-test="drone-own-a"><span>On A, select at least three A vehicles and click one drone-purchase button once. Confirm every eligible vehicle receives or queues that drone and A pays the full cost.</span></label></li>
+      </ol>
+    </section>
+
+    <section>
+      <header><h2>3. Test B’s own group</h2><span class="badge">Regression</span></header>
+      <ol>
+        <li><label><input type="checkbox" data-test="drone-own-b"><span>On B, select at least three B vehicles and repeat. Confirm every eligible vehicle receives or queues the drone and B pays.</span></label></li>
+      </ol>
+    </section>
+
+    <section>
+      <header><h2>4. Test shared control</h2><span class="badge">Main test</span></header>
+      <ol>
+        <li><label><input type="checkbox" data-test="drone-shared"><span>From A, select at least three untouched B vehicles and buy drones for the group. Confirm every eligible B vehicle gets one and only B’s money decreases.</span></label></li>
+      </ol>
+    </section>
+
+    <section>
+      <header><h2>5. Test a blended group</h2><span class="badge warning">Final check</span></header>
+      <ol>
+        <li><label><input type="checkbox" data-test="drone-blended"><span>From A, select untouched drone-capable vehicles belonging to both A and B, then buy one drone type. Confirm all eligible vehicles receive it and each army pays for its own vehicles.</span></label></li>
+      </ol>
+    </section>
+
+    <section>
+      <header><h2>Result notes</h2><span class="badge warning">Keep concise</span></header>
+      <div class="notes">
+        <textarea id="notes" placeholder="Example: PASS on all four group cases; or shared-control case failed with 3 selected B Humvees and $5,000 available."></textarea>
+      </div>
+    </section>
+
+    <div class="footer-actions">
+      <button id="reset" type="button">Reset checklist</button>
+    </div>
+  </main>
+
+  <script>
+    const storageKey = "generals-multiselect-drone-v1";
+    const checkboxes = [...document.querySelectorAll('input[type="checkbox"]')];
+    const notes = document.querySelector("#notes");
+    const progress = document.querySelector("#progress");
+    const progressText = document.querySelector("#progressText");
+
+    function load() {
+      const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+      for (const box of checkboxes) box.checked = Boolean(saved[box.dataset.test]);
+      notes.value = saved.notes || "";
+      updateProgress();
+    }
+
+    function save() {
+      const state = { notes: notes.value };
+      for (const box of checkboxes) state[box.dataset.test] = box.checked;
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const complete = checkboxes.filter(box => box.checked).length;
+      progress.max = checkboxes.length;
+      progress.value = complete;
+      progressText.textContent = `${complete} / ${checkboxes.length} complete`;
+    }
+
+    for (const box of checkboxes) box.addEventListener("change", save);
+    notes.addEventListener("input", save);
+    document.querySelector("#reset").addEventListener("click", () => {
+      if (!confirm("Clear every check and the notes?")) return;
+      localStorage.removeItem(storageKey);
+      for (const box of checkboxes) box.checked = false;
+      notes.value = "";
+      updateProgress();
+    });
+
+    load();
+  </script>
+</body>
+</html>
