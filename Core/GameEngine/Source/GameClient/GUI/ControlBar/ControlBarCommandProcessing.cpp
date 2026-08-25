@@ -177,6 +177,13 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			commandButton->getCommandType() != GUI_COMMAND_SELECT_ALL_UNITS_OF_TYPE )
 		obj = m_currentSelectedDrawable->getObject();
 
+	Object *shortcutSource = nullptr;
+	if (commandButton->getCommandType() == GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT
+			|| commandButton->getCommandType() == GUI_COMMAND_SPECIAL_POWER_CONSTRUCT_FROM_SHORTCUT)
+	{
+		shortcutSource = findSpecialPowerShortcutSource(control, commandButton);
+	}
+
 	//@todo Kris -- Special case code so convoy trucks can detonate nuke trucks -- if other things need this,
 	//rethink it.
 	if( obj && BitIsSet( commandButton->getOptions(), SINGLE_USE_COMMAND ) )
@@ -221,7 +228,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 		//with. For example, the terrorist can jack a car and convert it into a carbomb, but he has to
 		//click on a valid car. In this case the doCommandOrHint code will determine if the mode is valid
 		//or not and the cursor modes will be set appropriately.
-		TheInGameUI->setGUICommand( commandButton );
+		TheInGameUI->setGUICommand( commandButton, shortcutSource ? shortcutSource->getID() : INVALID_ID );
 	}
 	else switch( commandButton->getCommandType() )
 	{
@@ -272,11 +279,10 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 		case GUI_COMMAND_SPECIAL_POWER_CONSTRUCT_FROM_SHORTCUT:
 		{
 			//Determine the object that would construct it.
-			const SpecialPowerTemplate *spTemplate = commandButton->getSpecialPowerTemplate();
-			DEBUG_ASSERTCRASH(spTemplate != nullptr, ("Special Power Button is missing Special Power template"));
+			DEBUG_ASSERTCRASH(commandButton->getSpecialPowerTemplate() != nullptr,
+				("Special Power Button is missing Special Power template"));
 
-			SpecialPowerType spType = spTemplate->getSpecialPowerType();
-			Object* obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( spType );
+			Object* obj = shortcutSource;
 			if( !obj )
 				break;
 			Drawable *draw = obj->getDrawable();
@@ -633,8 +639,10 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 
 		case GUI_COMMAND_SELECT_ALL_UNITS_OF_TYPE:
 		{
-			Player* localPlayer = ThePlayerList->getLocalPlayer();
-			if( !localPlayer )
+			Player* shortcutPlayer = getSpecialPowerShortcutPlayer(control);
+			if (!shortcutPlayer)
+				shortcutPlayer = ThePlayerList->getLocalPlayer();
+			if( !shortcutPlayer )
 			{
 				break;
 			}
@@ -658,7 +666,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			SelectObjectsInfo info;
 			info.thingTemplate = thing;
 			info.msg = teamMsg;
-			localPlayer->iterateObjects( selectObjectOfType, (void*)&info );
+			shortcutPlayer->iterateObjects( selectObjectOfType, (void*)&info );
 
 			break;
 		}
@@ -834,9 +842,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 		case GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT:
 		{
 			const SpecialPowerTemplate *spTemplate = commandButton->getSpecialPowerTemplate();
-			SpecialPowerType spType = spTemplate->getSpecialPowerType();
-
-			Object* obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( spType );
+			Object* obj = shortcutSource;
 			if( !obj )
 				break;
 

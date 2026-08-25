@@ -863,6 +863,8 @@ protected:
 
 	void populateSpecialPowerShortcut( Player *player);
 	void updateSpecialPowerShortcut();
+	Player *getSpecialPowerShortcutPlayer( const GameWindow *control ) const;
+	Object *findSpecialPowerShortcutSource( const GameWindow *control, const CommandButton *command ) const;
 
 	static const Image* calculateVeterancyOverlayForThing( const ThingTemplate *thingTemplate );
 	static const Image* calculateVeterancyOverlayForObject( const Object *obj );
@@ -920,6 +922,7 @@ protected:
 	GameWindow *m_specialPowerShortcutButtons[ MAX_SPECIAL_POWER_SHORTCUTS ];
 	GameWindow *m_specialPowerShortcutButtonParents[ MAX_SPECIAL_POWER_SHORTCUTS ];
 	DisplayString *m_shortcutDisplayStrings[ MAX_SPECIAL_POWER_SHORTCUTS ];
+	Int m_specialPowerShortcutPlayerIndices[ MAX_SPECIAL_POWER_SHORTCUTS ];
 	Int m_currentlyUsedSpecialPowersButtons; ///< Value will be <= MAX_SPECIAL_POWER_SHORTCUTS;
 
 
@@ -985,7 +988,7 @@ public:
 	void hideBuildTooltipLayout();
 	void deleteBuildTooltipLayout();
 	Bool getShowBuildTooltipLayout(){return m_showBuildToolTipLayout;	}
-	void populateBuildTooltipLayout( const CommandButton *commandButton, GameWindow *tooltipWin = nullptr );
+	void populateBuildTooltipLayout( const CommandButton *commandButton, GameWindow *tooltipWin = nullptr, Player *commandPlayer = nullptr );
 	void repopulateBuildTooltipLayout();
 private:
 

@@ -267,6 +267,27 @@ bool changeLogicTimeScale(FpsValueChange change)
 
 static Bool isSystemMessage( const GameMessage *msg );
 
+static Object *getPendingShortcutSource( const CommandButton *command )
+{
+	if (!command || !command->getSpecialPowerTemplate())
+		return nullptr;
+
+	if (TheInGameUI && TheGameLogic)
+	{
+		const ObjectID sourceID = TheInGameUI->getGUICommandSourceObjectID();
+		if (sourceID != INVALID_ID)
+		{
+			return TheGameLogic->findObjectByID(sourceID);
+		}
+	}
+
+	if (ThePlayerList && ThePlayerList->getLocalPlayer())
+		return ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType(
+			command->getSpecialPowerTemplate()->getSpecialPowerType());
+
+	return nullptr;
+}
+
 enum{ DROPPED_MAX_PARTICLE_COUNT = 1000};
 
 static Bool canSelectionSalvage( const Object *targetObj)
@@ -1709,7 +1730,7 @@ GameMessage::Type CommandTranslator::evaluateContextCommand( Drawable *draw,
 #endif
 				case GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT:
 				{
-					Object* unit = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( command->getSpecialPowerTemplate()->getSpecialPowerType() );
+					Object* unit = getPendingShortcutSource(command);
 					if( unit )
 						currentlyValid = TheInGameUI->canSelectedObjectsDoSpecialPower( command, obj, pos, InGameUI::SELECTION_ANY, command->getOptions(), unit );
 					else
@@ -1745,7 +1766,7 @@ GameMessage::Type CommandTranslator::evaluateContextCommand( Drawable *draw,
 #endif
 						case GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT:
 						{
-							Object* unit = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( command->getSpecialPowerTemplate()->getSpecialPowerType() );
+							Object* unit = getPendingShortcutSource(command);
 							if( unit )
 								msgType = issueSpecialPowerCommand( command, type, draw, pos, unit );
 							break;
@@ -1796,7 +1817,7 @@ GameMessage::Type CommandTranslator::evaluateContextCommand( Drawable *draw,
 				{
 					case GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT:
 					{
-						Object* unit = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( command->getSpecialPowerTemplate()->getSpecialPowerType() );
+						Object* unit = getPendingShortcutSource(command);
 						if( unit )
 							msgType = issueSpecialPowerCommand( command, type, draw, pos, unit );
 						break;

@@ -1120,6 +1120,7 @@ InGameUI::InGameUI()
 	}
 
 	m_pendingGUICommand = nullptr;
+	m_pendingGUICommandSourceObjectID = INVALID_ID;
 
 	// allocate an array for the placement icons
 	m_placeIcon = NEW Drawable* [ TheGlobalData->m_maxLineBuildObjects ];
@@ -1419,7 +1420,12 @@ void InGameUI::setRadiusCursor(RadiusCursorType cursorType, const SpecialPowerTe
 	Object* obj = nullptr;
 	if( m_pendingGUICommand && m_pendingGUICommand->getCommandType() == GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT )
 	{
-		if( ThePlayerList && ThePlayerList->getLocalPlayer() && specPowTempl != nullptr )
+		if (m_pendingGUICommandSourceObjectID != INVALID_ID)
+		{
+			if (TheGameLogic)
+				obj = TheGameLogic->findObjectByID(m_pendingGUICommandSourceObjectID);
+		}
+		else if( ThePlayerList && ThePlayerList->getLocalPlayer() && specPowTempl != nullptr )
 		{
 			obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( specPowTempl->getSpecialPowerType() );
 		}
@@ -3195,7 +3201,7 @@ Coord2D InGameUI::getScrollAmount()
 	* is where we enable that "mode" so that we can get the additional data needed for a
 	* command from the user */
 //-------------------------------------------------------------------------------------------------
-void InGameUI::setGUICommand( const CommandButton *command )
+void InGameUI::setGUICommand( const CommandButton *command, ObjectID sourceObjectID )
 {
 	if (TheRecorder->getMode() == RECORDERMODETYPE_PLAYBACK)
 		return;
@@ -3210,6 +3216,7 @@ void InGameUI::setGUICommand( const CommandButton *command )
 			DEBUG_CRASH( ("setGUICommand: Command '%s' does not need additional user interaction",
 														command->getName().str()) );
 			m_pendingGUICommand = nullptr;
+			m_pendingGUICommandSourceObjectID = INVALID_ID;
 			m_mouseMode = MOUSEMODE_DEFAULT;
 			return;
 
@@ -3225,6 +3232,7 @@ void InGameUI::setGUICommand( const CommandButton *command )
 
 	// set the command
 	m_pendingGUICommand = command;
+	m_pendingGUICommandSourceObjectID = command ? sourceObjectID : INVALID_ID;
 
 	// set the mouse cursor for commands that need a targeting or to normal with no command
 	if( command && BitIsSet( command->getOptions(), COMMAND_OPTION_NEED_TARGET ) && !command->isContextCommand() )

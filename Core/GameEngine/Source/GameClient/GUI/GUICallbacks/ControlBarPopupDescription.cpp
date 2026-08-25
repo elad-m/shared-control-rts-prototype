@@ -209,7 +209,8 @@ void ControlBar::showBuildTooltipLayout( GameWindow *cmdButton )
 		//	m_buildToolTipLayout = TheWindowManager->winCreateLayout( "ControlBarPopupDescription.wnd" );
 		//	m_buildToolTipLayout->setUpdate(ControlBarPopupDescriptionUpdateFunc);
 
-		populateBuildTooltipLayout(commandButton);
+		Player *commandPlayer = getSpecialPowerShortcutPlayer(cmdButton);
+		populateBuildTooltipLayout(commandButton, nullptr, commandPlayer);
 	}
 	else
 	{
@@ -238,15 +239,16 @@ void ControlBar::repopulateBuildTooltipLayout()
 	if(!BitIsSet(prevWindow->winGetStyle(), GWS_PUSH_BUTTON))
 		return;
 	const CommandButton *commandButton = (const CommandButton *)GadgetButtonGetData(prevWindow);
-	populateBuildTooltipLayout(commandButton);
+	Player *commandPlayer = getSpecialPowerShortcutPlayer(prevWindow);
+	populateBuildTooltipLayout(commandButton, nullptr, commandPlayer);
 }
 
-void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton, GameWindow *tooltipWin)
+void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton, GameWindow *tooltipWin, Player *commandPlayer)
 {
 	if(!m_buildToolTipLayout)
 		return;
 
-	Player *player = ThePlayerList->getLocalPlayer();
+	Player *player = commandPlayer ? commandPlayer : ThePlayerList->getLocalPlayer();
 	UnicodeString name, cost, descrip;
 	UnicodeString requiresFormat = UnicodeString::TheEmptyString, requiresList;
 	Bool firstRequirement = true;
@@ -598,6 +600,13 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 		}
 
 	}
+	if (commandPlayer && commandPlayer != ThePlayerList->getLocalPlayer())
+	{
+		UnicodeString ownerName;
+		ownerName.format(L" [%ls]", commandPlayer->getPlayerDisplayName().str());
+		name.concat(ownerName);
+	}
+
 	GameWindow *win = TheWindowManager->winGetWindowFromId(m_buildToolTipLayout->getFirstWindow(), TheNameKeyGenerator->nameToKey("ControlBarPopupDescription.wnd:StaticTextName"));
 	if(win)
 	{

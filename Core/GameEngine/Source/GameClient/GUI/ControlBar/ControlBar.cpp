@@ -38,6 +38,7 @@
 #include "Common/ActionManager.h"
 #include "Common/FramePacer.h"
 #include "Common/GameType.h"
+#include "Common/GlobalData.h"
 #include "Common/MultiplayerSettings.h"
 #include "Common/NameKeyGenerator.h"
 #include "Common/Override.h"
@@ -932,6 +933,7 @@ ControlBar::ControlBar()
 	{
 		m_specialPowerShortcutButtons[i] = nullptr;
 		m_specialPowerShortcutButtonParents[i] = nullptr;
+		m_specialPowerShortcutPlayerIndices[i] = -1;
 	}
 
 	m_specialPowerShortcutParent = nullptr;
@@ -3251,6 +3253,7 @@ void ControlBar::initSpecialPowershortcutBar( Player *player)
 	{
 		m_specialPowerShortcutButtonParents[i] = nullptr;
 		m_specialPowerShortcutButtons[i] = nullptr;
+		m_specialPowerShortcutPlayerIndices[i] = -1;
 	}
 
 	if(m_specialPowerLayout)
@@ -3308,7 +3311,6 @@ void ControlBar::initSpecialPowershortcutBar( Player *player)
 
 void ControlBar::populateSpecialPowerShortcut( Player *player)
 {
-	const CommandSet *commandSet;
 	Int i;
 	if(!player || !player->getPlayerTemplate()
 			|| !player->isLocalPlayer() || m_currentlyUsedSpecialPowersButtons == 0
@@ -3317,26 +3319,52 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 	for( i = 0; i < MAX_SPECIAL_POWER_SHORTCUTS; ++i )
 	{
 		if (m_specialPowerShortcutButtons[i])
+		{
 			m_specialPowerShortcutButtons[i]->winHide(TRUE);
+			GadgetButtonSetBorder(m_specialPowerShortcutButtons[i], GAME_COLOR_UNDEFINED, FALSE);
+		}
 		if (m_specialPowerShortcutButtonParents[i])
 			m_specialPowerShortcutButtonParents[i]->winHide(TRUE);
-
+		m_specialPowerShortcutPlayerIndices[i] = -1;
 	}
 
-	// get command set
-	if(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet().isEmpty() )
-		return;
-	commandSet = findCommandSet(player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet()); // TEMP WILL CHANGE TO PROPER WAY ONCE WORKING
-	if(!commandSet)
-		return;
-	// populate the button with commands defined
-	Int currentButton = 0;
-	const CommandButton *commandButton;
-	for( i = 0; i < m_currentlyUsedSpecialPowersButtons; i++ )
+	Player *shortcutPlayers[MAX_PLAYER_COUNT];
+	Int shortcutPlayerCount = 0;
+	shortcutPlayers[shortcutPlayerCount++] = player;
+	if (TheGlobalData && TheGlobalData->m_sharedControl && ThePlayerList)
 	{
+		for (Int playerIndex = 0; playerIndex < ThePlayerList->getPlayerCount(); ++playerIndex)
+		{
+			Player *candidate = ThePlayerList->getNthPlayer(playerIndex);
+			if (candidate && candidate != player && candidate->isPlayerActive()
+					&& candidate->getPlayerType() == PLAYER_HUMAN
+					&& player->getRelationship(candidate->getDefaultTeam()) == ALLIES)
+			{
+				shortcutPlayers[shortcutPlayerCount++] = candidate;
+			}
+		}
+	}
+
+	Int currentButton = 0;
+	for (Int shortcutPlayerIndex = 0;
+			 shortcutPlayerIndex < shortcutPlayerCount && currentButton < m_currentlyUsedSpecialPowersButtons;
+			 ++shortcutPlayerIndex)
+	{
+		Player *shortcutPlayer = shortcutPlayers[shortcutPlayerIndex];
+		const PlayerTemplate *shortcutTemplate = shortcutPlayer->getPlayerTemplate();
+		if (!shortcutTemplate || shortcutTemplate->getSpecialPowerShortcutCommandSet().isEmpty())
+			continue;
+
+		const CommandSet *commandSet = findCommandSet(shortcutTemplate->getSpecialPowerShortcutCommandSet());
+		if (!commandSet)
+			continue;
+
+		const Int shortcutCount = MIN(shortcutTemplate->getSpecialPowerShortcutButtonCount(), MAX_SPECIAL_POWER_SHORTCUTS);
+		for( i = 0; i < shortcutCount && currentButton < m_currentlyUsedSpecialPowersButtons; i++ )
+		{
 
 		// get command button
-		commandButton = commandSet->getCommandButton(i);
+		const CommandButton *commandButton = commandSet->getCommandButton(i);
 
 		// if button is not present, just hide the window
 		if( commandButton == nullptr )
@@ -3352,7 +3380,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 			if( BitIsSet( commandButton->getOptions(), NEED_UPGRADE ) )
 			{
 				const UpgradeTemplate *upgrade = commandButton->getUpgradeTemplate();
-				if( upgrade && !ThePlayerList->getLocalPlayer()->hasUpgradeComplete( upgrade->getUpgradeMask() ) )
+				if( upgrade && !shortcutPlayer->hasUpgradeComplete( upgrade->getUpgradeMask() ) )
 				{
 					//Kris: 8/13/03 - Don't show shortcut buttons that require upgrades we don't have. As far as
 					//I know, only the radar van scan has this. The MOAB is handled differently (sciences).
@@ -3376,7 +3404,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 				}
 
 				//We just need to find something that has the power.
-				Object *obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( commandButton->getSpecialPowerTemplate()->getSpecialPowerType() );
+				Object *obj = shortcutPlayer->findMostReadyShortcutSpecialPowerOfType( commandButton->getSpecialPowerTemplate()->getSpecialPowerType() );
 				if( !obj )
 				{
 					continue;
@@ -3384,7 +3412,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 
 				if( power->getRequiredScience() != SCIENCE_INVALID )
 				{
-					if( player->hasScience( power->getRequiredScience() ) == FALSE )
+					if( shortcutPlayer->hasScience( power->getRequiredScience() ) == FALSE )
 					{
 						//Hide the power
 						//m_specialPowerShortcutButtons[ i ]->winHide( TRUE );
@@ -3402,7 +3430,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 							science = commandButton->getScienceVec()[ scienceIndex ];
 
 							//Keep going until we reach the end or don't have the required science!
-							if( player->hasScience( science ) )
+							if( shortcutPlayer->hasScience( science ) )
 							{
 								bestIndex = scienceIndex;
 							}
@@ -3423,16 +3451,16 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 							Int i;
 
 							// get command set
-							if( !player || !player->getPlayerTemplate()
-									|| player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1().isEmpty()
-									|| player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3().isEmpty()
-									|| player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8().isEmpty() )
+							if( !shortcutPlayer || !shortcutPlayer->getPlayerTemplate()
+									|| shortcutPlayer->getPlayerTemplate()->getPurchaseScienceCommandSetRank1().isEmpty()
+									|| shortcutPlayer->getPlayerTemplate()->getPurchaseScienceCommandSetRank3().isEmpty()
+									|| shortcutPlayer->getPlayerTemplate()->getPurchaseScienceCommandSetRank8().isEmpty() )
 							{
 								continue;
 							}
-							commandSet1 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank1() );
-							commandSet3 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank3() );
-							commandSet8 = findCommandSet( player->getPlayerTemplate()->getPurchaseScienceCommandSetRank8() );
+							commandSet1 = findCommandSet( shortcutPlayer->getPlayerTemplate()->getPurchaseScienceCommandSetRank1() );
+							commandSet3 = findCommandSet( shortcutPlayer->getPlayerTemplate()->getPurchaseScienceCommandSetRank3() );
+							commandSet8 = findCommandSet( shortcutPlayer->getPlayerTemplate()->getPurchaseScienceCommandSetRank8() );
 
 							if( !commandSet1 || !commandSet3 || !commandSet8 )
 							{
@@ -3504,7 +3532,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 			else if( commandButton->getCommandType() == GUI_COMMAND_SELECT_ALL_UNITS_OF_TYPE )
 			{
 				//Make sure we actually have an object of type that we want to be able to select.
-				Object *obj = ThePlayerList->getLocalPlayer()->findAnyExistingObjectWithThingTemplate( commandButton->getThingTemplate() );
+				Object *obj = shortcutPlayer->findAnyExistingObjectWithThingTemplate( commandButton->getThingTemplate() );
 				if( !obj )
 				{
 					continue;
@@ -3523,11 +3551,15 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 
 			// populate the visible button with data from the command button
 			setControlCommand( m_specialPowerShortcutButtons[ currentButton ], commandButton );
+			m_specialPowerShortcutPlayerIndices[currentButton] = shortcutPlayer->getPlayerIndex();
+			if (shortcutPlayer != player)
+				GadgetButtonSetBorder(m_specialPowerShortcutButtons[currentButton], shortcutPlayer->getPlayerColor(), TRUE);
 			GadgetButtonSetAltSound(m_specialPowerShortcutButtons[ currentButton ], "GUIGenShortcutClick");
 			currentButton++;
 
 		}
 
+	}
 	}
 	if(m_contextParent[ CP_MASTER ] && !m_contextParent[ CP_MASTER ]->winIsHidden() && m_specialPowerShortcutParent->winIsHidden())
 	{
@@ -3535,6 +3567,41 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 		animateSpecialPowerShortcut(TRUE);
 	}
 	updateSpecialPowerShortcut();
+}
+
+//-------------------------------------------------------------------------------------------------
+Player *ControlBar::getSpecialPowerShortcutPlayer( const GameWindow *control ) const
+{
+	if (!control || !ThePlayerList)
+		return nullptr;
+
+	for (Int i = 0; i < m_currentlyUsedSpecialPowersButtons; ++i)
+	{
+		if (m_specialPowerShortcutButtons[i] != control)
+			continue;
+
+		const Int ownerIndex = m_specialPowerShortcutPlayerIndices[i];
+		for (Int playerIndex = 0; playerIndex < ThePlayerList->getPlayerCount(); ++playerIndex)
+		{
+			Player *player = ThePlayerList->getNthPlayer(playerIndex);
+			if (player && player->getPlayerIndex() == ownerIndex)
+				return player;
+		}
+		break;
+	}
+
+	return nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+Object *ControlBar::findSpecialPowerShortcutSource( const GameWindow *control, const CommandButton *command ) const
+{
+	Player *player = getSpecialPowerShortcutPlayer(control);
+	if (!player || !command || !command->getSpecialPowerTemplate())
+		return nullptr;
+
+	return player->findMostReadyShortcutSpecialPowerOfType(
+		command->getSpecialPowerTemplate()->getSpecialPowerType());
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -3566,18 +3633,40 @@ Bool ControlBar::hasAnyShortcutSelection() const
 //-------------------------------------------------------------------------------------------------
 Bool ControlBar::canShowSpecialPowerShortcut() const
 {
+	Player *localPlayer = ThePlayerList ? ThePlayerList->getLocalPlayer() : nullptr;
+	if (!localPlayer)
+		return false;
+
 #ifdef RTS_GENERALS
 	// Special Powers in Generals do not have the ShortcutPower flag set and therefore this function
 	// is satisfied with the presence of a Command Center, which is supposed to host Special Powers.
-	if (ThePlayerList->getLocalPlayer()->findNaturalCommandCenter() != nullptr)
+	if (localPlayer->findNaturalCommandCenter() != nullptr)
 		return true;
 #endif
 
 	if (hasAnyShortcutSelection())
 		return true;
 
-	if (ThePlayerList->getLocalPlayer()->hasAnyShortcutSpecialPower())
+	if (localPlayer->hasAnyShortcutSpecialPower())
 		return true;
+
+	if (TheGlobalData && TheGlobalData->m_sharedControl)
+	{
+		for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		{
+			Player *candidate = ThePlayerList->getNthPlayer(i);
+			if (!candidate || candidate == localPlayer || !candidate->isPlayerActive()
+					|| candidate->getPlayerType() != PLAYER_HUMAN
+					|| localPlayer->getRelationship(candidate->getDefaultTeam()) != ALLIES)
+				continue;
+#ifdef RTS_GENERALS
+			if (candidate->findNaturalCommandCenter() != nullptr)
+				return true;
+#endif
+			if (candidate->hasAnyShortcutSpecialPower())
+				return true;
+		}
+	}
 
 	return false;
 }
@@ -3640,25 +3729,28 @@ void ControlBar::updateSpecialPowerShortcut()
 		// is the command available
 
 		CommandAvailability availability = COMMAND_RESTRICTED;
+		Player *shortcutPlayer = getSpecialPowerShortcutPlayer(win);
+		if (!shortcutPlayer)
+			shortcutPlayer = ThePlayerList->getLocalPlayer();
 
 		const SpecialPowerTemplate *spTemplate = command->getSpecialPowerTemplate();
 		Object *obj = nullptr;
 		if( spTemplate )
 		{
-			obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( command->getSpecialPowerTemplate()->getSpecialPowerType() );
+			obj = shortcutPlayer->findMostReadyShortcutSpecialPowerOfType( command->getSpecialPowerTemplate()->getSpecialPowerType() );
 			availability = getCommandAvailability( command, obj, win );
 		}
 		else if( command->getCommandType() == GUI_COMMAND_SELECT_ALL_UNITS_OF_TYPE )
 		{
 			availability = COMMAND_HIDDEN;
-			Object *obj = ThePlayerList->getLocalPlayer()->findAnyExistingObjectWithThingTemplate( command->getThingTemplate() );
+			Object *obj = shortcutPlayer->findAnyExistingObjectWithThingTemplate( command->getThingTemplate() );
 			if( obj )
 			{
 				//Make command available if it isn't a special power template shortcut power.
 				availability = COMMAND_AVAILABLE;
 
 				UnsignedInt mostReadyPercentage;
-				obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerForThing( command->getThingTemplate(), mostReadyPercentage );
+				obj = shortcutPlayer->findMostReadyShortcutSpecialPowerForThing( command->getThingTemplate(), mostReadyPercentage );
 				if( obj )
 				{
 					//Ugh... hacky.
@@ -3737,7 +3829,10 @@ void ControlBar::drawSpecialPowerShortcutMultiplierText()
 			Int numReady = 0;
 			if( spTemplate )
 			{
-				numReady = ThePlayerList->getLocalPlayer()->countReadyShortcutSpecialPowersOfType( spTemplate->getSpecialPowerType() );
+				Player *shortcutPlayer = getSpecialPowerShortcutPlayer(win);
+				if (!shortcutPlayer)
+					shortcutPlayer = ThePlayerList->getLocalPlayer();
+				numReady = shortcutPlayer->countReadyShortcutSpecialPowersOfType( spTemplate->getSpecialPowerType() );
 			}
 			if( numReady > 1 ) // Lorenzen changed... Displaying a "1" is superfluous
 			{

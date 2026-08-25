@@ -213,6 +213,18 @@ static Player *getMessagePlayer(GameMessage *msg)
 }
 
 // ------------------------------------------------------------------------------------------------
+static Bool isSharedControlAuthorized(const Player *requestingPlayer, const Object *object)
+{
+	const Player *controllingPlayer = object ? object->getControllingPlayer() : nullptr;
+
+	return TheGlobalData && TheGlobalData->m_sharedControl
+		&& requestingPlayer && controllingPlayer
+		&& requestingPlayer->getPlayerType() == PLAYER_HUMAN
+		&& controllingPlayer->getPlayerType() == PLAYER_HUMAN
+		&& requestingPlayer->getRelationship(object->getTeam()) == ALLIES;
+}
+
+// ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
 static Object * getSingleObjectFromSelection(const AIGroup *currentlySelectedGroup)
 {
@@ -1141,7 +1153,8 @@ bool GameLogic::onDoSpecialPower(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &curr
 #if !RETAIL_COMPATIBLE_CRC
 		// TheSuperHackers @fix stephanmeesters 01/03/2026 Validate the origin of the source object
 		Player *msgPlayer = getMessagePlayer(msg);
-		if ( source->getControllingPlayer() != msgPlayer )
+		if ( source->getControllingPlayer() != msgPlayer
+				&& !isSharedControlAuthorized(msgPlayer, source) )
 		{
 			DEBUG_CRASH( ("MSG_DO_SPECIAL_POWER: Player '%ls' attempted to control the object '%s' owned by player '%ls'.",
 					msgPlayer->getPlayerDisplayName().str(),
@@ -1201,7 +1214,8 @@ bool GameLogic::onDoSpecialPowerAtLocation(MAYBE_UNUSED GameMessage *msg, AIGrou
 #if !RETAIL_COMPATIBLE_CRC
 		// TheSuperHackers @fix stephanmeesters 01/03/2026 Validate the origin of the source object
 		Player *msgPlayer = getMessagePlayer(msg);
-		if ( source->getControllingPlayer() != msgPlayer )
+		if ( source->getControllingPlayer() != msgPlayer
+				&& !isSharedControlAuthorized(msgPlayer, source) )
 		{
 			DEBUG_CRASH( ("MSG_DO_SPECIAL_POWER_AT_LOCATION: Player '%ls' attempted to control the object '%s' owned by player '%ls'.",
 					msgPlayer->getPlayerDisplayName().str(),
@@ -1257,7 +1271,8 @@ bool GameLogic::onDoSpecialPowerAtObject(MAYBE_UNUSED GameMessage *msg, AIGroupP
 #if !RETAIL_COMPATIBLE_CRC
 		// TheSuperHackers @fix stephanmeesters 01/03/2026 Validate the origin of the source object
 		Player *msgPlayer = getMessagePlayer(msg);
-		if ( source->getControllingPlayer() != msgPlayer )
+		if ( source->getControllingPlayer() != msgPlayer
+				&& !isSharedControlAuthorized(msgPlayer, source) )
 		{
 			DEBUG_CRASH( ("MSG_DO_SPECIAL_POWER_AT_OBJECT: Player '%ls' attempted to control the object '%s' owned by player '%ls'.",
 					msgPlayer->getPlayerDisplayName().str(),
@@ -1667,7 +1682,8 @@ bool GameLogic::onDoSpecialPowerOverrideDestination(MAYBE_UNUSED GameMessage *ms
 #if !RETAIL_COMPATIBLE_CRC
 		// TheSuperHackers @fix stephanmeesters 01/03/2026 Validate the origin of the source object
 		Player *msgPlayer = getMessagePlayer(msg);
-		if ( source->getControllingPlayer() != msgPlayer )
+		if ( source->getControllingPlayer() != msgPlayer
+				&& !isSharedControlAuthorized(msgPlayer, source) )
 		{
 			DEBUG_CRASH( ("MSG_DO_SPECIAL_POWER_OVERRIDE_DESTINATION: Player '%ls' attempted to control the object '%s' owned by player '%ls'.",
 					msgPlayer->getPlayerDisplayName().str(),

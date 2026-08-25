@@ -430,8 +430,9 @@ public:  // ********************************************************************
 	virtual Coord2D getScrollAmount();										///< get scroll amount
 
 	// gui command interface
-	virtual void setGUICommand( const CommandButton *command );				///< the command has been clicked in the UI and needs additional data
+	virtual void setGUICommand( const CommandButton *command, ObjectID sourceObjectID = INVALID_ID );				///< the command has been clicked in the UI and needs additional data
 	virtual const CommandButton *getGUICommand() const;								///< get the pending gui command
+	virtual ObjectID getGUICommandSourceObjectID() const { return m_pendingGUICommandSourceObjectID; }
 
 	// build interface
 	virtual void placeBuildAvailable( const ThingTemplate *build, Drawable *buildDrawable );				///< built thing being placed
@@ -734,6 +735,7 @@ protected:
 	MoveHintStruct							m_moveHint[ MAX_MOVE_HINTS ];
 	Int													m_nextMoveHint;
 	const CommandButton *				m_pendingGUICommand;										///< GUI command that needs additional interaction from the user
+	ObjectID										m_pendingGUICommandSourceObjectID;					///< exact source for a shortcut command
 	BuildProgress								m_buildProgress[ MAX_BUILD_PROGRESS ];	///< progress for building units
 	const ThingTemplate *				m_pendingPlaceType;											///< type of built thing we're trying to place
 	ObjectID										m_pendingPlaceSourceObjectID;						///< source object of the thing constructing the item
