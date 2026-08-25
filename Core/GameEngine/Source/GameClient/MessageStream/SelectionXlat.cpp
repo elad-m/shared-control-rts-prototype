@@ -1205,7 +1205,7 @@ GameMessageDisposition SelectionTranslator::onMetaSelectTeam(MAYBE_UNUSED const 
 					Int numObjs = objlist.size();
 					for (Int i = 0; i < numObjs; ++i)
 					{
-						if( objlist[i]->getControllingPlayer() == player )
+						if( objlist[i]->isLocallyControlled() )
 						{
 							TheInGameUI->selectDrawable(objlist[i]->getDrawable());
 						}
