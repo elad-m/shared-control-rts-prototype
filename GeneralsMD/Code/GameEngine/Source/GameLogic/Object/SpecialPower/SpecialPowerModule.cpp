@@ -492,6 +492,30 @@ void SpecialPowerModule::triggerSpecialPower( const Coord3D *location )
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
+static void createSpecialPowerViewObjectForPlayer( const ThingTemplate *viewObjectTemplate,
+																								 Player *player,
+																								 const Coord3D *location,
+																								 Real visionRange,
+																								 UnsignedInt visionDuration )
+{
+	if (!viewObjectTemplate || !player)
+		return;
+
+	Object *viewObject = TheThingFactory->newObject(viewObjectTemplate, player->getDefaultTeam());
+	if (!viewObject)
+		return;
+
+	viewObject->setPosition(location);
+	viewObject->setShroudClearingRange(visionRange);
+
+	static NameKeyType key_DeletionUpdate = NAMEKEY("DeletionUpdate");
+	DeletionUpdate *dup = (DeletionUpdate*)viewObject->findUpdateModule(key_DeletionUpdate);
+	if (dup)
+		dup->setLifetimeRange(visionDuration, visionDuration);
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 void SpecialPowerModule::createViewObject( const Coord3D *location )
 {
 	const SpecialPowerModuleData *modData = getSpecialPowerModuleData();
@@ -514,19 +538,27 @@ void SpecialPowerModule::createViewObject( const Coord3D *location )
 	if( viewObjectTemplate == nullptr )
 		return;
 
-	Object *viewObject = TheThingFactory->newObject( viewObjectTemplate, getObject()->getControllingPlayer()->getDefaultTeam() );
-
-	if( viewObject == nullptr )
+	Player *owner = getObject()->getControllingPlayer();
+	if (!owner)
 		return;
 
-	viewObject->setPosition( location );
-	viewObject->setShroudClearingRange( visionRange );
+	createSpecialPowerViewObjectForPlayer(viewObjectTemplate, owner, location, visionRange, visionDuration);
 
-	static NameKeyType key_DeletionUpdate = NAMEKEY("DeletionUpdate");
-	DeletionUpdate* dup = (DeletionUpdate*)viewObject->findUpdateModule(key_DeletionUpdate);
-	if( dup )
+	// Shared-control vision powers must reveal to every allied human even when the
+	// temporary view object's normal alliance propagation is skipped by an object template.
+	if (TheGlobalData && TheGlobalData->m_sharedControl && ThePlayerList)
 	{
-		dup->setLifetimeRange( visionDuration, visionDuration );
+		for (Int i = 0; i < ThePlayerList->getPlayerCount(); ++i)
+		{
+			Player *candidate = ThePlayerList->getNthPlayer(i);
+			if (candidate && candidate != owner && candidate->isPlayerActive()
+					&& candidate->getPlayerType() == PLAYER_HUMAN
+					&& owner->getRelationship(candidate->getDefaultTeam()) == ALLIES)
+			{
+				createSpecialPowerViewObjectForPlayer(
+					viewObjectTemplate, candidate, location, visionRange, visionDuration);
+			}
+		}
 	}
 }
 

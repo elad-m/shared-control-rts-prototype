@@ -32,6 +32,7 @@
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/GlobalData.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
 #include "Common/Xfer.h"
@@ -198,6 +199,23 @@ void SpyVisionUpdate::doActivationWork( Player *playerToSetFor, Bool setting )
 		if( playerToSetFor->getRelationship(player->getDefaultTeam()) == ENEMIES )
 		{
 			player->setUnitsVisionSpied( setting, data->m_spyOnKindof, playerToSetFor->getPlayerIndex() );
+
+			// Spy vision is stored per observing player instead of propagating through
+			// normal allied sight. Mirror it to shared-control allies explicitly.
+			if( TheGlobalData && TheGlobalData->m_sharedControl )
+			{
+				for( Int allyIndex = 0; allyIndex < ThePlayerList->getPlayerCount(); ++allyIndex )
+				{
+					Player *ally = ThePlayerList->getNthPlayer( allyIndex );
+					if( ally && ally != playerToSetFor && ally->isPlayerActive()
+							&& ally->getPlayerType() == PLAYER_HUMAN
+							&& playerToSetFor->getRelationship( ally->getDefaultTeam() ) == ALLIES )
+					{
+						player->setUnitsVisionSpied(
+							setting, data->m_spyOnKindof, ally->getPlayerIndex() );
+					}
+				}
+			}
 		}
 	}
 
