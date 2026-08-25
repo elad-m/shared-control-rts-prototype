@@ -3480,8 +3480,11 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 									}
 									else if( command->getScienceVec()[0] == science )
 									{
-										commandButton->copyImagesFrom( command, TRUE );
-										commandButton->copyButtonTextFrom( command, TRUE, TRUE );
+										// This function immediately applies the updated command to its shortcut
+										// gadget below.  Marking the whole UI dirty here causes an endless
+										// rebuild when allied players own different levels of the same power.
+										commandButton->copyImagesFrom( command, FALSE );
+										commandButton->copyButtonTextFrom( command, TRUE, FALSE );
 										found = TRUE;
 										break;
 									}
@@ -3499,8 +3502,8 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 									}
 									else if( command->getScienceVec()[0] == science )
 									{
-										commandButton->copyImagesFrom( command, TRUE );
-										commandButton->copyButtonTextFrom( command, TRUE, TRUE );
+										commandButton->copyImagesFrom( command, FALSE );
+										commandButton->copyButtonTextFrom( command, TRUE, FALSE );
 										found = TRUE;
 										break;
 									}
@@ -3518,8 +3521,8 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 									}
 									else if( command->getScienceVec()[0] == science )
 									{
-										commandButton->copyImagesFrom( command, TRUE );
-										commandButton->copyButtonTextFrom( command, TRUE, TRUE );
+										commandButton->copyImagesFrom( command, FALSE );
+										commandButton->copyButtonTextFrom( command, TRUE, FALSE );
 										found = TRUE;
 										break;
 									}
