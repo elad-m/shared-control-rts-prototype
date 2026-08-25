@@ -551,12 +551,14 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			if( upgradeT == nullptr )
 				break;
 
-			Player *upgradePlayer = obj ? obj->getControllingPlayer() : ThePlayerList->getLocalPlayer();
-			if( upgradePlayer == nullptr )
-				break;
+			Player *upgradePlayer = obj ? obj->getControllingPlayer() : nullptr;
 
-			//Make sure the player can really make this
-			if( TheUpgradeCenter->canAffordUpgrade( upgradePlayer, upgradeT, TRUE ) == FALSE )
+			// Multi-select intentionally has no single source object.  In that context the
+			// logic layer applies the upgrade to each eligible selected object and charges
+			// its controlling player.  Only perform this single-owner preflight when a
+			// single object is driving the command bar.
+			if( upgradePlayer != nullptr
+					&& TheUpgradeCenter->canAffordUpgrade( upgradePlayer, upgradeT, TRUE ) == FALSE )
 			{
 				//Kris: Disabled because we can get a valid reason for not being able to afford the upgrade!
 				//TheInGameUI->message( "upgrade unsupported in commandprocessing." );
