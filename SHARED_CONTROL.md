@@ -3,17 +3,27 @@
 ## Status
 
 This is an unofficial, experimental modification of the GPL-covered engine
-source. It has been tested in a two-player LAN match with allied human armies
-and an AI opponent.
+source. Version 0.2.0 has been tested in two-player LAN matches with allied
+human armies and an AI opponent. Internet play is the next milestone and has
+not yet been verified.
 
 With shared control enabled, allied human players can:
 
 - select and move each other's units;
 - issue Stop, Guard, Attack Move, and ordinary attack orders;
-- command mixed selections containing units from multiple allied armies; and
+- command mixed selections containing units from multiple allied armies;
 - issue simultaneous orders to the same allied units;
-- see allied Guard and special-power targeting radii; and
-- see rally-point markers and paths for allied production buildings.
+- see allied Guard and special-power targeting radii;
+- see rally-point markers and paths for allied production buildings;
+- use allied production, construction, garrison, upgrade, and cancellation
+  controls, with costs charged to the object's owner;
+- recall allied units through control groups; and
+- see and use allied General Powers and superweapon shortcuts, separated and
+  outlined with their owner's color.
+
+Allied satellite scans and Strategy Center intelligence reveal their results
+to the alliance. General Powers purchasing has been verified through rank 5,
+and multi-unit USA drone purchases have been verified.
 
 The prototype preserves each unit's original owner. It does not merge armies,
 resources, general points, production, defeat states, or player colors.
@@ -26,7 +36,8 @@ belongs to that owner.
 
 - Windows 8.1 or newer;
 - a legitimate local installation of the original game and expansion;
-- a private LAN where all players can already see and join the same match; and
+- for the currently verified workflow, a private LAN where all players can
+  already see and join the same match; and
 - the exact same shared-control executable on every participating computer.
 
 This repository and its release archives intentionally exclude retail `.big`
@@ -58,16 +69,31 @@ uncontrollable.
 
 ## Known limitations
 
-- Allied superweapons can be commanded by selecting the allied building, but
-  their buttons do not yet appear in the other player's global shortcut panel.
+- Recalling a control group selects allied units and allows commands, but the
+  group number is not drawn above units owned by another player.
 - Pilots cannot currently enter allied vehicles.
 - Units owned by different allies cannot currently share one garrisoned
   building.
-- Resource spending and production initiated through an allied building need
-  more focused testing.
+- Direct money transfer, a shared wallet, and ownership transfer are not
+  implemented.
+- Internet play through C&C:Online has not yet been verified. Version 0.2.0
+  should be treated as a LAN-tested release.
 
-These limitations are deliberately left outside the first network-safety
-prototype. Ownership transfer and a shared global wallet are not implemented.
+Enemy units remain uncontrollable.
+
+## Internet-play milestone
+
+The shared-control rules operate in the synchronized game-command layer rather
+than in the LAN discovery code. The Online lobby also advertises executable and
+INI CRC values, so every participant must use the exact same build, game data,
+and `-sharedControl` option. Do not mix this prototype with an ordinary retail
+client.
+
+The next development stage is to validate version 0.2.0 in a private
+C&C:Online room using the current GenTool/C&C:Online setup. That work includes
+checking that the release launcher loads the required integration, that two
+matching clients can see and join the room, and that a complete match remains
+synchronized. Online support will not be claimed until those checks pass.
 
 ## Building from source
 
@@ -90,7 +116,7 @@ build\win32-vs2019\GeneralsMD\Release\generalszh.exe
 After building the exact Git revision that will be tagged, run:
 
 ```powershell
-.\scripts\package-shared-control-release.ps1 -Version prototype-0.1.0
+.\scripts\package-shared-control-release.ps1 -Version prototype-0.2.0
 ```
 
 The archive contains the executable, launcher, license, and this guide. Publish

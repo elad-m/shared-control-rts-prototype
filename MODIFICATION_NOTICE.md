@@ -5,7 +5,10 @@ This repository is an unofficial modified version of GPL-covered engine source.
 Modified functionality includes:
 
 - an opt-in `-sharedControl` command-line mode;
-- allied-human selection and network-command authorization;
+- allied-human selection and synchronized command authorization;
+- allied object controls with owner-specific spending and ownership;
+- owner-colored allied special-power shortcuts and shared radar intelligence;
+- allied-unit control-group recall and multi-selection upgrade handling;
 - a release-mode maximum-camera-height argument;
 - local launch/deployment helpers; and
 - compatibility-oriented build instructions for the tested Windows 8.1 client.
