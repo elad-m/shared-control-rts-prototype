@@ -85,6 +85,8 @@
 
 #include "GameNetwork/NetworkInterface.h"
 
+#include <vector>
+
 
 
 
@@ -825,6 +827,16 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 		case GameMessage::MSG_PURCHASE_SCIENCE:
 		{
 			onPurchaseScience(msg);
+			break;
+		}
+		case GameMessage::MSG_TRANSFER_RESOURCES:
+		{
+			onTransferResources(msg);
+			break;
+		}
+		case GameMessage::MSG_TRANSFER_BUILDING:
+		{
+			onTransferBuilding(msg);
 			break;
 		}
 	}
@@ -2460,6 +2472,180 @@ bool GameLogic::onPurchaseScience(MAYBE_UNUSED GameMessage *msg)
 		return false;
 
 	msgPlayer->attemptToPurchaseScience(science);
+
+	return true;
+}
+
+// ------------------------------------------------------------------------------------------------
+bool GameLogic::onTransferResources(GameMessage *msg)
+{
+	Player *sender = getMessagePlayer(msg);
+	const Int recipientIndex = msg->getArgument(0)->integer;
+	const UnsignedInt amount = msg->getArgument(1)->integer;
+	const Bool isSupportedAmount = amount == 500 || amount == 1000 || amount == 5000;
+
+	if (!TheGlobalData || !TheGlobalData->m_sharedControl || !sender || sender->getPlayerType() != PLAYER_HUMAN || !isSupportedAmount
+			|| recipientIndex < 0 || recipientIndex >= ThePlayerList->getPlayerCount())
+		return false;
+
+	Player *recipient = ThePlayerList->getNthPlayer(recipientIndex);
+	if (!recipient || recipient == sender || !sender->isPlayerActive() || !recipient->isPlayerActive()
+			|| sender->isPlayerObserver() || recipient->isPlayerObserver()
+			|| sender->getRelationship(recipient->getDefaultTeam()) != ALLIES)
+		return false;
+
+	Money *senderMoney = sender->getMoney();
+	Money *recipientMoney = recipient->getMoney();
+	if (!senderMoney || !recipientMoney || senderMoney->countMoney() < amount)
+		return false;
+
+	// A transfer moves existing money; it must not inflate the recipient's cash-per-minute income.
+	senderMoney->withdraw(amount, sender->isLocalPlayer());
+	recipientMoney->deposit(amount, recipient->isLocalPlayer(), FALSE);
+
+	Player *localPlayer = ThePlayerList->getLocalPlayer();
+	if (TheInGameUI && localPlayer && (localPlayer == sender || localPlayer == recipient))
+	{
+		UnicodeString transferMessage;
+		transferMessage.format(L"%ls sent $%u to %ls.", sender->getPlayerDisplayName().str(), amount,
+			recipient->getPlayerDisplayName().str());
+		TheInGameUI->message(transferMessage);
+	}
+
+	return true;
+}
+
+// ------------------------------------------------------------------------------------------------
+static void collectContainedObject(Object *object, void *userData)
+{
+	std::vector<Object *> *objects = static_cast<std::vector<Object *> *>(userData);
+	if (object)
+		objects->push_back(object);
+}
+
+// ------------------------------------------------------------------------------------------------
+static Bool playersAreAlliesOrSame(Player *left, Player *right)
+{
+	return left && right && (left == right || left->getRelationship(right->getDefaultTeam()) == ALLIES);
+}
+
+// ------------------------------------------------------------------------------------------------
+static Bool isSupportedAlliedTransferBuilding(Object *building)
+{
+	if (!building || !building->isKindOf(KINDOF_STRUCTURE))
+		return false;
+
+	// Building category flags are inconsistent between factions and generals. Use a short denylist
+	// for player-scoped or already-known-broken structures, and allow other empty structures.
+	const Bool isRiskyCategory = building->isKindOf(KINDOF_COMMANDCENTER)
+		|| building->isKindOf(KINDOF_FS_SUPERWEAPON)
+		|| building->isKindOf(KINDOF_FS_STRATEGY_CENTER)
+		|| building->isKindOf(KINDOF_FS_INTERNET_CENTER)
+		|| building->isKindOf(KINDOF_FS_ADVANCED_TECH)
+		|| building->isKindOf(KINDOF_FS_AIRFIELD)
+		|| building->isKindOf(KINDOF_FS_FAKE);
+
+	ContainModuleInterface *contain = building->getContain();
+	return !isRiskyCategory && (!contain || contain->getContainCount() == 0);
+}
+
+// ------------------------------------------------------------------------------------------------
+static void refreshTransferredObject(Object *object)
+{
+	if (!object)
+		return;
+
+	object->updateUpgradeModules();
+	Drawable *draw = object->getDrawable();
+	if (draw)
+	{
+		if (TheGlobalData->m_timeOfDay == TIME_OF_DAY_NIGHT)
+			draw->setIndicatorColor(object->getNightIndicatorColor());
+		else
+			draw->setIndicatorColor(object->getIndicatorColor());
+	}
+}
+
+// ------------------------------------------------------------------------------------------------
+bool GameLogic::onTransferBuilding(GameMessage *msg)
+{
+	Player *sender = getMessagePlayer(msg);
+	const Int recipientIndex = msg->getArgument(0)->integer;
+	const ObjectID buildingID = msg->getArgument(1)->objectID;
+
+	if (!TheGlobalData || !TheGlobalData->m_sharedControl || !sender || sender->getPlayerType() != PLAYER_HUMAN
+			|| recipientIndex < 0 || recipientIndex >= ThePlayerList->getPlayerCount())
+		return false;
+
+	Player *recipient = ThePlayerList->getNthPlayer(recipientIndex);
+	Object *building = findObjectByID(buildingID);
+	if (!recipient || recipient->getPlayerType() != PLAYER_HUMAN || !recipient->isPlayerActive()
+			|| recipient->isPlayerObserver() || !building || !building->isKindOf(KINDOF_STRUCTURE)
+			|| building->isEffectivelyDead() || building->testStatus(OBJECT_STATUS_UNDER_CONSTRUCTION)
+			|| building->testStatus(OBJECT_STATUS_SOLD))
+		return false;
+
+	if (!isSupportedAlliedTransferBuilding(building))
+	{
+		if (TheInGameUI && sender->isLocalPlayer())
+			TheInGameUI->message(L"This building type is not supported for allied transfer yet.");
+		return false;
+	}
+
+	Player *owner = building->getControllingPlayer();
+	if (!owner || owner == recipient || !owner->isPlayerActive() || owner->isPlayerObserver()
+			|| !playersAreAlliesOrSame(sender, owner) || !playersAreAlliesOrSame(sender, recipient)
+			|| !playersAreAlliesOrSame(owner, recipient))
+		return false;
+
+	ContainModuleInterface *contain = building->getContain();
+	std::vector<Object *> containedObjects;
+	if (contain)
+		contain->iterateContained(collectContainedObject, &containedObjects, FALSE);
+
+	// Validate the complete operation before changing any ownership.
+	for (std::vector<Object *>::const_iterator it = containedObjects.begin(); it != containedObjects.end(); ++it)
+	{
+		Object *contained = *it;
+		Player *containedOwner = contained ? contained->getControllingPlayer() : nullptr;
+		if (!contained || contained->isEffectivelyDead() || !playersAreAlliesOrSame(owner, containedOwner)
+				|| !playersAreAlliesOrSame(recipient, containedOwner))
+			return false;
+	}
+
+	Team *recipientTeam = recipient->getDefaultTeam();
+	if (!recipientTeam)
+		return false;
+
+	// Move passengers first. Transport capture logic can then see that they already belong to the
+	// new owner and preserve them inside the gifted building (notably China Internet Centers).
+	for (std::vector<Object *>::iterator it = containedObjects.begin(); it != containedObjects.end(); ++it)
+	{
+		(*it)->setTeam(recipientTeam);
+		refreshTransferredObject(*it);
+	}
+
+	building->setTeam(recipientTeam);
+	refreshTransferredObject(building);
+
+	Player *localPlayer = ThePlayerList->getLocalPlayer();
+	if (TheInGameUI && localPlayer && (playersAreAlliesOrSame(localPlayer, sender)
+			|| localPlayer == owner || localPlayer == recipient))
+	{
+		UnicodeString transferMessage;
+		if (sender == owner)
+		{
+			transferMessage.format(L"%ls transferred %ls to %ls.", sender->getPlayerDisplayName().str(),
+				building->getTemplate()->getDisplayName().str(), recipient->getPlayerDisplayName().str());
+		}
+		else
+		{
+			transferMessage.format(L"%ls transferred %ls's %ls to %ls.", sender->getPlayerDisplayName().str(),
+				owner->getPlayerDisplayName().str(), building->getTemplate()->getDisplayName().str(),
+				recipient->getPlayerDisplayName().str());
+		}
+		TheInGameUI->message(transferMessage);
+	}
 
 	return true;
 }

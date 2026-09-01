@@ -2861,7 +2861,7 @@ void Drawable::drawAmmo( const IRegion2D *healthBarRegion )
 	if (!(
 				TheGlobalData->m_showObjectHealth &&
 				(isSelected() || (TheInGameUI && (TheInGameUI->getMousedOverDrawableID() == getID()))) &&
-				obj->getControllingPlayer() == rts::getObservedOrLocalPlayer()
+				obj->isLocallyControlled()
 			))
 		return;
 
@@ -2919,7 +2919,7 @@ void Drawable::drawContained( const IRegion2D *healthBarRegion )
 	if (!(
 				TheGlobalData->m_showObjectHealth &&
 				(isSelected() || (TheInGameUI && (TheInGameUI->getMousedOverDrawableID() == getID()))) &&
-				obj->getControllingPlayer() == rts::getObservedOrLocalPlayer()
+				obj->isLocallyControlled()
 			))
 		return;
 

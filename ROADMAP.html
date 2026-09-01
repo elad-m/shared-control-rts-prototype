@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Generals Shared Control Roadmap</title>
+  <style>
+    :root { color-scheme:dark; --bg:#0e120d; --panel:#192018; --panel2:#222b20; --line:#41523c; --text:#edf2e9; --muted:#abb7a6; --done:#8fbd63; --now:#e0b557; --later:#72a6cf; --hold:#cf7c72; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:radial-gradient(circle at 12% 0%,rgba(96,130,69,.27),transparent 34rem),var(--bg); color:var(--text); font:16px/1.5 system-ui,"Segoe UI",sans-serif; }
+    main { width:min(1050px,calc(100% - 32px)); margin:36px auto 70px; }
+    h1 { margin:0; font-size:clamp(30px,5vw,46px); letter-spacing:-.035em; }
+    h2 { margin:0; font-size:21px; }
+    p { margin:7px 0; }
+    a { color:#b9d99d; }
+    .muted { color:var(--muted); }
+    .legend { display:flex; flex-wrap:wrap; gap:9px; margin:22px 0; }
+    .status { display:inline-block; border:1px solid currentColor; border-radius:999px; padding:2px 9px; font-size:12px; font-weight:750; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; }
+    .done { color:var(--done); } .now { color:var(--now); } .later { color:var(--later); } .hold { color:var(--hold); }
+    section { margin-top:17px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:rgba(25,32,24,.95); box-shadow:0 14px 40px rgba(0,0,0,.2); }
+    section > header { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; background:var(--panel2); border-bottom:1px solid var(--line); }
+    .items { padding:5px 18px 10px; }
+    article { display:grid; grid-template-columns:110px 1fr; gap:14px; padding:13px 0; border-bottom:1px solid rgba(65,82,60,.55); }
+    article:last-child { border-bottom:0; }
+    article strong { display:block; margin-bottom:3px; }
+    article p { margin:0; color:var(--muted); }
+    code { color:#d9e8cd; background:#11170f; border-radius:5px; padding:1px 5px; }
+    .decision { border-left:4px solid var(--hold); padding:11px 14px; margin:14px 18px 18px; background:#151a14; }
+    footer { margin-top:20px; color:var(--muted); font-size:14px; }
+    @media (max-width:650px) { article { grid-template-columns:1fr; gap:7px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Generals Shared Control Roadmap</h1>
+      <p class="muted">Living feature plan for the playable Zero Hour shared-control build · updated 31 August 2026</p>
+      <p><a href="manual-test.html">Open the current manual test</a></p>
+    </header>
+
+    <div class="legend">
+      <span class="status done">Done</span><span class="status now">Current</span><span class="status later">Planned</span><span class="status hold">Deferred / decision</span>
+    </div>
+
+    <section>
+      <header><h2>Playable foundation</h2><span class="status done">Done</span></header>
+      <div class="items">
+        <article><span class="status done">Done</span><div><strong>Stable local build and two-PC LAN workflow</strong><p>Windowed launch, cursor, AI hostility, matching deployment, firewall preparation, WinRM recovery, current-address discovery, and two-PC launcher.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Core shared unit control</strong><p>Allied selection and commands, blended selections, production/garrison controls, construction cancellation, command indicators, rally points, guard radius, and allied superweapon use.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Shared information and General Powers</strong><p>Alliance radar/intelligence visibility, ally-colored General Power panels, rank-five purchase regression fix, and multi-unit drone purchases.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Direct resource transfers</strong><p>Diplomacy transfers of $500, $1,000, and $5,000 with synchronized validation and correct source/recipient balances.</p></div></article>
+      </div>
+    </section>
+
+    <section>
+      <header><h2>Building ownership transfer</h2><span class="status now">Current</span></header>
+      <div class="items">
+        <article><span class="status now">Testing</span><div><strong>Building-transfer denylist</strong><p>Any completed empty structure transfers unless it is a Command Center, superweapon, science/advanced-tech building, Internet Center, Airfield, or fake structure. This avoids unreliable faction category flags and enables USA defenses/Drop Zones, GLA Black Markets, factories, and empty tunnels.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Contextual Diplomacy layout</strong><p>Money mode shows three equal-width transfer buttons. Selecting an eligible structure replaces them with one full-width <code>TRANSFER BLDG</code> button using a smaller adaptive font.</p></div></article>
+        <article><span class="status later">Planned</span><div><strong>Ordinary garrisons</strong><p>Repair the garrison capture state so a transferred bunker remains with its recipient after transferred occupants exit.</p></div></article>
+        <article><span class="status later">Planned</span><div><strong>China Internet Center</strong><p>Transfer contained Hackers and explicitly restart their cash-generation activity for the new owner.</p></div></article>
+        <article><span class="status now">Testing</span><div><strong>Production buildings</strong><p>Empty production buildings are enabled. Cross-faction units still obey the recipient's sciences, so units such as the Nuke Cannon can remain unavailable without the corresponding China General Science.</p></div></article>
+        <article><span class="status hold">Deferred</span><div><strong>Airfields and occupied tunnels</strong><p>Docked aircraft require specialized ownership migration. Empty tunnels are enabled; a tunnel network containing units remains blocked.</p></div></article>
+      </div>
+      <div class="decision"><strong>Current design decision</strong><br>Command Centers, Strategy/advanced-tech buildings, and superweapons remain non-transferable. Their powers, sciences, limits, timers, and defeat state are player-level; allies can already operate their useful controls through shared control.</div>
+    </section>
+
+    <section>
+      <header><h2>Networking and remaining issues</h2><span class="status later">Planned</span></header>
+      <div class="items">
+        <article><span class="status later">Planned</span><div><strong>C&amp;C:Online match verification</strong><p>Windows 11 reaches Generals Online and both accounts entered a lobby. Full peer mesh/start still needs testing with a second suitable Windows 11 PC; Windows 8.1 compatibility remains problematic.</p></div></article>
+        <article><span class="status hold">Low priority</span><div><strong>Allied control-group number badge</strong><p>Allied control groups select and receive commands correctly, but the group number is only drawn for locally owned units.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Shared-control selection polish</strong><p>Each client starts with its own Command Center selected, and allied controlled vehicles now draw passenger and ammunition pips.</p></div></article>
+        <article><span class="status later">Observe</span><div><strong>Computer B slowdown</strong><p>Compare a long, high-unit-count match with and without transfers. Transfer messages do no continuous simulation work, so older hardware or match load is currently more likely than the feature.</p></div></article>
+      </div>
+    </section>
+
+    <footer>This file records product decisions, not just commits. Update statuses whenever implementation or gameplay verification changes the scope.</footer>
+  </main>
+</body>
+</html>

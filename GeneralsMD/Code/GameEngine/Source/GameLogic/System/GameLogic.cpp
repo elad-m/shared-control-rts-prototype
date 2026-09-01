@@ -2456,7 +2456,10 @@ static void findAndSelectCommandCenter(Object *obj, void* alreadyFound)
 	if (!((*(Bool*)alreadyFound)) && obj->isKindOf(KINDOF_COMMANDCENTER) )
 	{
 		((*(Bool*)alreadyFound)) = TRUE;
-		TheGameLogic->selectObject(obj, TRUE, obj->getControllingPlayer()->getPlayerMask(), obj->isLocallyControlled());
+		// Shared control makes allied objects locally controllable, but startup should visually select
+		// only this client's own Command Center rather than letting a later ally overwrite it.
+		const Bool affectLocalClient = obj->getControllingPlayer() == ThePlayerList->getLocalPlayer();
+		TheGameLogic->selectObject(obj, TRUE, obj->getControllingPlayer()->getPlayerMask(), affectLocalClient);
 
 	}
 }

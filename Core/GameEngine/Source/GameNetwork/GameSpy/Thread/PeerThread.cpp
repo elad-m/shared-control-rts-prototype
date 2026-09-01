@@ -1192,6 +1192,14 @@ void PeerThreadClass::Thread_Function()
 
 	peer = peerInitialize( &callbacks );
 	DEBUG_ASSERTCRASH( peer != nullptr, ("null peer!") );
+	if (!peer)
+	{
+		PeerResponse resp;
+		resp.peerResponseType = PeerResponse::PEERRESPONSE_DISCONNECT;
+		resp.discon.reason = DISCONNECT_COULDNOTCONNECT;
+		TheGameSpyPeerMessageQueue->addResponse(resp);
+		return;
+	}
 	m_isConnected = m_isConnecting = false;
 
 	qr2_register_key(EXECRC_KEY, EXECRC_STR);

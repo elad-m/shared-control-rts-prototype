@@ -44,6 +44,7 @@
 #include "GameClient/ShellHooks.h"
 
 #include "gamespy/ghttp/ghttp.h"
+#include "gamespy/gsavailable.h"
 
 #include "GameNetwork/DownloadManager.h"
 #include "GameNetwork/GameSpy/BuddyThread.h"
@@ -820,6 +821,52 @@ void StopAsyncDNSCheck()
 
 void StartPatchCheck()
 {
+	// The original pre-online patch service at servserv.generals.ea.com no
+	// longer exists.  Shared-control builds use the configured community
+	// GameSpy service and the built-in defaults instead of treating the dead
+	// legacy patch/MOTD check as an online connection failure.
+	if (TheGlobalData && TheGlobalData->m_sharedControl)
+	{
+		checkingForPatchBeforeGameSpy = FALSE;
+		cantConnectBeforeOnline = FALSE;
+		checksLeftBeforeOnline = 0;
+		++timeThroughOnline;
+		queuedDownloads.clear();
+
+		delete[] MOTDBuffer;
+		MOTDBuffer = nullptr;
+		delete[] configBuffer;
+		configBuffer = nullptr;
+
+#if RTS_GENERALS
+		const char *gameName = "ccgenerals";
+#elif RTS_ZEROHOUR
+		const char *gameName = "ccgenzh";
+#endif
+		GSIStartAvailableCheck(gameName);
+		const DWORD availabilityStart = GetTickCount();
+		GSIACResult availability = GSIACWaiting;
+		do
+		{
+			availability = GSIAvailableCheckThink();
+			if (availability == GSIACWaiting)
+				Sleep(1);
+		} while (availability == GSIACWaiting && GetTickCount() - availabilityStart < 10000);
+
+		if (availability == GSIACWaiting)
+		{
+			GSICancelAvailableCheck();
+			cantConnectBeforeOnline = TRUE;
+		}
+		else if (availability != GSIACAvailable)
+		{
+			cantConnectBeforeOnline = TRUE;
+		}
+
+		startOnline();
+		return;
+	}
+
 	checkingForPatchBeforeGameSpy = TRUE;
 	cantConnectBeforeOnline = FALSE;
 	timeThroughOnline++;
