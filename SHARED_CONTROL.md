@@ -29,20 +29,6 @@ The current development build adds explicit allied resource transfers through
 the Diplomacy screen. A player may send $500, $1,000, or $5,000 from their own
 wallet to an active ally.
 
-A selected, completed allied building can also be transferred from the
-Diplomacy screen with the building-transfer button. Because faction category
-flags are inconsistent, the current build uses a short denylist rather than an
-allowlist. Any completed empty structure can transfer except Command Centers,
-superweapons, science/advanced-technology buildings, Internet Centers,
-Airfields, and fake structures. Occupied structures remain blocked. Empty
-tunnels and production buildings are therefore testable, while their known
-special cases remain staged in `ROADMAP.html`.
-
-The generic `FS_TECHNOLOGY` marker is deliberately not used as an exclusion:
-USA defenses, Supply Drop Zones, and GLA Black Markets can carry that marker.
-The dedicated Command Center, superweapon, advanced-tech, Internet Center,
-Airfield, and fake-structure markers define the exclusions instead.
-
 The prototype preserves each unit's original owner. It does not merge armies,
 resources, general points, production, defeat states, or player colors.
 
@@ -92,9 +78,9 @@ uncontrollable.
 - Pilots cannot currently enter allied vehicles.
 - Units owned by different allies cannot currently share one garrisoned
   building.
-- A shared wallet and ownership transfer are not implemented. Direct money
-  transfer is available in the current development build but is not part of the
-  verified 0.2.0 release.
+- A shared wallet and building ownership transfer are intentionally not
+  implemented. Direct money transfer is available in the current development
+  build but is not part of the verified 0.2.0 release.
 - Internet play through C&C:Online has not yet been verified. Version 0.2.0
   should be treated as a LAN-tested release.
 

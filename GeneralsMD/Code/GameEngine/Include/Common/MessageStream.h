@@ -605,7 +605,6 @@ public:
 		MSG_SET_MINE_CLEARING_DETAIL,								///< CRC from the logic passed around in a network game :)
 		MSG_ENABLE_RETALIATION_MODE,								///< Turn retaliation mode on or off.
 		MSG_TRANSFER_RESOURCES,									///< Transfer money from the issuing player to an allied player. (player index, amount)
-		MSG_TRANSFER_BUILDING,									///< Transfer a building and its occupants to an allied player. (player index, object ID)
 
 		MSG_BEGIN_DEBUG_NETWORK_MESSAGES = 1900,		///< network messages that exist only in debug/internal builds. all grouped separately.
 

@@ -363,7 +363,6 @@ private:
 	bool onLogicCrc(GameMessage *msg);
 	bool onPurchaseScience(GameMessage *msg);
 	bool onTransferResources(GameMessage *msg);
-	bool onTransferBuilding(GameMessage *msg);
 
 private:
 

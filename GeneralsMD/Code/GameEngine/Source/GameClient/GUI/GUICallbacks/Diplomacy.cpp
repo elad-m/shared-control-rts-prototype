@@ -50,14 +50,11 @@
 #include "GameClient/GadgetStaticText.h"
 #include "GameClient/GadgetRadioButton.h"
 #include "GameClient/GameClient.h"
-#include "GameClient/GameFont.h"
 #include "GameClient/GameText.h"
 #include "GameClient/GUICallbacks.h"
 #include "GameClient/InGameUI.h"
 #include "GameClient/WinInstanceData.h"
 #include "GameLogic/GameLogic.h"
-#include "GameLogic/Object.h"
-#include "GameLogic/Module/ContainModule.h"
 #include "GameLogic/VictoryConditions.h"
 #include "GameNetwork/GameInfo.h"
 #include "GameNetwork/NetworkInterface.h"
@@ -77,7 +74,6 @@ enum { RESOURCE_TRANSFER_AMOUNT_COUNT = 3 };
 static const UnsignedInt resourceTransferAmounts[RESOURCE_TRANSFER_AMOUNT_COUNT] = { 500, 1000, 5000 };
 static const char *resourceTransferLabels[RESOURCE_TRANSFER_AMOUNT_COUNT] = { "$500", "$1K", "$5K" };
 static NameKeyType buttonTransferID[MAX_SLOTS][RESOURCE_TRANSFER_AMOUNT_COUNT];
-static NameKeyType buttonTransferBuildingID[MAX_SLOTS];
 static NameKeyType radioButtonInGameID = NAMEKEY_INVALID;
 static NameKeyType radioButtonBuddiesID = NAMEKEY_INVALID;
 static GameWindow *radioButtonInGame = nullptr;
@@ -95,7 +91,6 @@ static GameWindow *staticTextStatus[MAX_SLOTS] = {nullptr, nullptr, nullptr, nul
 static GameWindow *buttonMute[MAX_SLOTS] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 static GameWindow *buttonUnMute[MAX_SLOTS] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 static GameWindow *buttonTransfer[MAX_SLOTS][RESOURCE_TRANSFER_AMOUNT_COUNT] = {};
-static GameWindow *buttonTransferBuilding[MAX_SLOTS] = {};
 static Int slotNumInRow[MAX_SLOTS];
 
 //-------------------------------------------------------------------------------------------------
@@ -138,10 +133,6 @@ static void grabWindowPointers()
 			buttonTransferID[i][amountIndex] = NAMEKEY(temp);
 			buttonTransfer[i][amountIndex] = TheWindowManager->winGetWindowFromId(theWindow, buttonTransferID[i][amountIndex]);
 		}
-		temp.format("Diplomacy.wnd:ButtonTransferBuilding%d", i);
-		buttonTransferBuildingID[i] = NAMEKEY(temp);
-		buttonTransferBuilding[i] = TheWindowManager->winGetWindowFromId(theWindow, buttonTransferBuildingID[i]);
-
 		slotNumInRow[i] = -1;
 	}
 }
@@ -158,7 +149,6 @@ static void releaseWindowPointers()
 		buttonUnMute[i] = nullptr;
 		for (Int amountIndex = 0; amountIndex < RESOURCE_TRANSFER_AMOUNT_COUNT; ++amountIndex)
 			buttonTransfer[i][amountIndex] = nullptr;
-		buttonTransferBuilding[i] = nullptr;
 
 		slotNumInRow[i] = -1;
 	}
@@ -203,29 +193,6 @@ static void createResourceTransferButtons()
 				buttonTransfer[row][amountIndex]->winHide(TRUE);
 			}
 		}
-
-		WinInstanceData buildingData;
-		buildingData.init();
-		buildingData.m_id = buttonTransferBuildingID[row];
-		BitSet(buildingData.m_style, GWS_PUSH_BUTTON | GWS_MOUSE_TRACK);
-		buildingData.m_textLabelString = "TRANSFER BLDG";
-		buildingData.setTooltipText(L"Transfer the selected supported building to this ally");
-		GameFont *buildingButtonFont = staticTextStatus[row]->winGetFont();
-		if (buildingButtonFont && TheFontLibrary)
-		{
-			const Int smallerPointSize = max(8, buildingButtonFont->pointSize * 2 / 3);
-			buildingButtonFont = TheFontLibrary->getFont(
-				buildingButtonFont->nameString, smallerPointSize, buildingButtonFont->bold);
-		}
-		buttonTransferBuilding[row] = TheWindowManager->gogoGadgetPushButton(
-			parent, WIN_STATUS_ENABLED,
-			x, y, width, height,
-			&buildingData, buildingButtonFont, TRUE);
-		if (buttonTransferBuilding[row])
-		{
-			buttonTransferBuilding[row]->winSetOwner(theWindow);
-			buttonTransferBuilding[row]->winHide(TRUE);
-		}
 	}
 }
 
@@ -241,67 +208,20 @@ static Player *getPlayerForDiplomacyRow(Int row)
 }
 
 //-------------------------------------------------------------------------------------------------
-static Bool isSupportedAlliedTransferBuilding(Object *building)
-{
-	if (!building || !building->isKindOf(KINDOF_STRUCTURE))
-		return false;
-
-	const Bool isRiskyCategory = building->isKindOf(KINDOF_COMMANDCENTER)
-		|| building->isKindOf(KINDOF_FS_SUPERWEAPON)
-		|| building->isKindOf(KINDOF_FS_STRATEGY_CENTER)
-		|| building->isKindOf(KINDOF_FS_INTERNET_CENTER)
-		|| building->isKindOf(KINDOF_FS_ADVANCED_TECH)
-		|| building->isKindOf(KINDOF_FS_AIRFIELD)
-		|| building->isKindOf(KINDOF_FS_FAKE);
-	ContainModuleInterface *contain = building->getContain();
-	return !isRiskyCategory && (!contain || contain->getContainCount() == 0);
-}
-
-//-------------------------------------------------------------------------------------------------
-static Object *getSelectedBuildingForTransfer()
-{
-	Player *localPlayer = ThePlayerList ? ThePlayerList->getLocalPlayer() : nullptr;
-	if (!localPlayer || !TheInGameUI || TheInGameUI->getSelectCount() != 1)
-		return nullptr;
-
-	Drawable *draw = TheInGameUI->getFirstSelectedDrawable();
-	Object *building = draw ? draw->getObject() : nullptr;
-	if (!building || !building->isKindOf(KINDOF_STRUCTURE) || building->isEffectivelyDead()
-			|| building->testStatus(OBJECT_STATUS_UNDER_CONSTRUCTION) || building->testStatus(OBJECT_STATUS_SOLD))
-		return nullptr;
-
-	Player *owner = building->getControllingPlayer();
-	if (!owner || (owner != localPlayer && localPlayer->getRelationship(owner->getDefaultTeam()) != ALLIES))
-		return nullptr;
-
-	if (!isSupportedAlliedTransferBuilding(building))
-		return nullptr;
-
-	return building;
-}
-
-//-------------------------------------------------------------------------------------------------
 static void updateResourceTransferButtons()
 {
 	Player *localPlayer = ThePlayerList ? ThePlayerList->getLocalPlayer() : nullptr;
-	Object *selectedBuilding = getSelectedBuildingForTransfer();
-	Player *buildingOwner = selectedBuilding ? selectedBuilding->getControllingPlayer() : nullptr;
-	const Bool isBuildingTransferMode = selectedBuilding != nullptr;
 	for (Int row = 0; row < MAX_SLOTS; ++row)
 	{
 		Player *recipient = getPlayerForDiplomacyRow(row);
-		const Bool canTargetPlayer = TheGlobalData && TheGlobalData->m_sharedControl && localPlayer && recipient
+		const Bool canTransferResources = TheGlobalData && TheGlobalData->m_sharedControl && localPlayer && recipient
 			&& localPlayer->isPlayerActive() && recipient->isPlayerActive()
 			&& !localPlayer->isPlayerObserver() && !recipient->isPlayerObserver()
-			&& (localPlayer == recipient || localPlayer->getRelationship(recipient->getDefaultTeam()) == ALLIES);
-		const Bool canTransferResources = !isBuildingTransferMode && canTargetPlayer && localPlayer != recipient;
-		const Bool canTransferBuilding = canTargetPlayer && recipient->getPlayerType() == PLAYER_HUMAN
-			&& selectedBuilding && buildingOwner && buildingOwner != recipient
-			&& buildingOwner->getRelationship(recipient->getDefaultTeam()) == ALLIES;
-		const Bool showBuildingButton = isBuildingTransferMode && canTargetPlayer && buildingOwner != recipient;
+			&& localPlayer != recipient
+			&& localPlayer->getRelationship(recipient->getDefaultTeam()) == ALLIES;
 
 		if (staticTextStatus[row])
-			staticTextStatus[row]->winHide(canTransferResources || showBuildingButton);
+			staticTextStatus[row]->winHide(canTransferResources);
 
 		for (Int amountIndex = 0; amountIndex < RESOURCE_TRANSFER_AMOUNT_COUNT; ++amountIndex)
 		{
@@ -310,13 +230,6 @@ static void updateResourceTransferButtons()
 				continue;
 			button->winHide(!canTransferResources);
 			button->winEnable(canTransferResources && localPlayer->getMoney()->countMoney() >= resourceTransferAmounts[amountIndex]);
-		}
-
-		GameWindow *buildingButton = buttonTransferBuilding[row];
-		if (buildingButton)
-		{
-			buildingButton->winHide(!showBuildingButton);
-			buildingButton->winEnable(canTransferBuilding);
 		}
 	}
 }
@@ -613,17 +526,6 @@ WindowMsgHandledType DiplomacySystem( GameWindow *window, UnsignedInt msg,
 
 			for (Int i=0; i<MAX_SLOTS; ++i)
 			{
-				if (controlID == buttonTransferBuildingID[i] && slotNumInRow[i] >= 0)
-				{
-					Player *recipient = getPlayerForDiplomacyRow(i);
-					Object *building = getSelectedBuildingForTransfer();
-					if (!recipient || !building)
-						return MSG_HANDLED;
-					GameMessage *transferMessage = TheMessageStream->appendMessage(GameMessage::MSG_TRANSFER_BUILDING);
-					transferMessage->appendIntegerArgument(recipient->getPlayerIndex());
-					transferMessage->appendObjectIDArgument(building->getID());
-					return MSG_HANDLED;
-				}
 				for (Int amountIndex = 0; amountIndex < RESOURCE_TRANSFER_AMOUNT_COUNT; ++amountIndex)
 				{
 					if (controlID == buttonTransferID[i][amountIndex] && slotNumInRow[i] >= 0)
@@ -798,8 +700,6 @@ void PopulateInGameDiplomacyPopup()
 			buttonMute[rowNum]->winHide(TRUE);
 		if (buttonUnMute[rowNum])
 			buttonUnMute[rowNum]->winHide(TRUE);
-		if (buttonTransferBuilding[rowNum])
-			buttonTransferBuilding[rowNum]->winHide(TRUE);
 		for (Int amountIndex = 0; amountIndex < RESOURCE_TRANSFER_AMOUNT_COUNT; ++amountIndex)
 		{
 			if (buttonTransfer[rowNum][amountIndex])

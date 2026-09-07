@@ -34,7 +34,7 @@
   <main>
     <header>
       <h1>Generals Shared Control Roadmap</h1>
-      <p class="muted">Living feature plan for the playable Zero Hour shared-control build · updated 31 August 2026</p>
+      <p class="muted">Living feature plan for the playable Zero Hour shared-control build · updated 2 September 2026</p>
       <p><a href="manual-test.html">Open the current manual test</a></p>
     </header>
 
@@ -53,16 +53,12 @@
     </section>
 
     <section>
-      <header><h2>Building ownership transfer</h2><span class="status now">Current</span></header>
+      <header><h2>Economy support scope</h2><span class="status done">Decided</span></header>
       <div class="items">
-        <article><span class="status now">Testing</span><div><strong>Building-transfer denylist</strong><p>Any completed empty structure transfers unless it is a Command Center, superweapon, science/advanced-tech building, Internet Center, Airfield, or fake structure. This avoids unreliable faction category flags and enables USA defenses/Drop Zones, GLA Black Markets, factories, and empty tunnels.</p></div></article>
-        <article><span class="status done">Done</span><div><strong>Contextual Diplomacy layout</strong><p>Money mode shows three equal-width transfer buttons. Selecting an eligible structure replaces them with one full-width <code>TRANSFER BLDG</code> button using a smaller adaptive font.</p></div></article>
-        <article><span class="status later">Planned</span><div><strong>Ordinary garrisons</strong><p>Repair the garrison capture state so a transferred bunker remains with its recipient after transferred occupants exit.</p></div></article>
-        <article><span class="status later">Planned</span><div><strong>China Internet Center</strong><p>Transfer contained Hackers and explicitly restart their cash-generation activity for the new owner.</p></div></article>
-        <article><span class="status now">Testing</span><div><strong>Production buildings</strong><p>Empty production buildings are enabled. Cross-faction units still obey the recipient's sciences, so units such as the Nuke Cannon can remain unavailable without the corresponding China General Science.</p></div></article>
-        <article><span class="status hold">Deferred</span><div><strong>Airfields and occupied tunnels</strong><p>Docked aircraft require specialized ownership migration. Empty tunnels are enabled; a tunnel network containing units remains blocked.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Immediate financial support</strong><p>Players can send $500, $1,000, or $5,000 from their own wallet to an active ally through Diplomacy.</p></div></article>
+        <article><span class="status hold">Removed</span><div><strong>No building ownership transfer</strong><p>Shared control already lets allies operate buildings and construct an economic base for one another after sending funds. Ownership transfer duplicated that workflow while introducing power-grid, collector, science, garrison, airfield, tunnel, upgrade, and defeat-state edge cases.</p></div></article>
       </div>
-      <div class="decision"><strong>Current design decision</strong><br>Command Centers, Strategy/advanced-tech buildings, and superweapons remain non-transferable. Their powers, sciences, limits, timers, and defeat state are player-level; allies can already operate their useful controls through shared control.</div>
+      <div class="decision"><strong>Current design decision</strong><br>Transfer funds, not ownership. The recipient can use the money directly, while either ally can use shared control to build and manage infrastructure belonging to the recipient.</div>
     </section>
 
     <section>
