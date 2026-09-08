@@ -9,6 +9,9 @@ Modified functionality includes:
 - allied object controls with owner-specific spending and ownership;
 - owner-colored allied special-power shortcuts and shared radar intelligence;
 - allied-unit control-group recall and multi-selection upgrade handling;
+- direct funds transfers between active allies;
+- an optional lobby rule for mixed allied transports, building garrisons, and
+  allied-pilot vehicle promotion;
 - a release-mode maximum-camera-height argument;
 - local launch/deployment helpers; and
 - compatibility-oriented build instructions for the tested Windows 8.1 client.

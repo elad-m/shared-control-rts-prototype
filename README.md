@@ -3,8 +3,9 @@
 This branch contains an experimental, independently developed shared-control
 mode. Two allied human players can select and command each other's units,
 buildings, production, and special powers in a LAN match when every
-participating client launches with `-sharedControl`. Version 0.2.0 is
-LAN-tested; Internet play is the next milestone and is not yet verified.
+participating client launches with `-sharedControl`. Version 0.3.0 is
+LAN-tested and adds allied funds transfers plus an optional mixed-allied-
+garrison rule; Internet play is not yet fully verified.
 
 This is a modified version of the GPL-covered engine source. It is not an
 original Electronic Arts release, is not endorsed or supported by Electronic

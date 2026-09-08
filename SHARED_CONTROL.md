@@ -3,7 +3,7 @@
 ## Status
 
 This is an unofficial, experimental modification of the GPL-covered engine
-source. Version 0.2.0 has been tested in two-player LAN matches with allied
+source. Version 0.3.0 has been tested in two-player LAN matches with allied
 human armies and an AI opponent. Internet play is the next milestone and has
 not yet been verified.
 
@@ -21,13 +21,18 @@ With shared control enabled, allied human players can:
 - see and use allied General Powers and superweapon shortcuts, separated and
   outlined with their owner's color.
 
+Players can transfer $500, $1,000, or $5,000 from their own wallet to an
+active ally through the Diplomacy screen.
+
+The host can optionally enable **Allow Mixed Allied Garrisons** before a
+match. When enabled, allied infantry can share transports and garrisoned
+buildings, mixed occupants remain inside and can fire normally, and a
+higher-ranked allied pilot can promote a vehicle. The option is disabled by
+default and the normal ownership restrictions remain in force when it is off.
+
 Allied satellite scans and Strategy Center intelligence reveal their results
 to the alliance. General Powers purchasing has been verified through rank 5,
 and multi-unit USA drone purchases have been verified.
-
-The current development build adds explicit allied resource transfers through
-the Diplomacy screen. A player may send $500, $1,000, or $5,000 from their own
-wallet to an active ally.
 
 The prototype preserves each unit's original owner. It does not merge armies,
 resources, general points, production, defeat states, or player colors.
@@ -75,13 +80,9 @@ uncontrollable.
 
 - Recalling a control group selects allied units and allows commands, but the
   group number is not drawn above units owned by another player.
-- Pilots cannot currently enter allied vehicles.
-- Units owned by different allies cannot currently share one garrisoned
-  building.
 - A shared wallet and building ownership transfer are intentionally not
-  implemented. Direct money transfer is available in the current development
-  build but is not part of the verified 0.2.0 release.
-- Internet play through C&C:Online has not yet been verified. Version 0.2.0
+  implemented. Direct money transfer is available instead.
+- Internet play through C&C:Online has not yet been verified. Version 0.3.0
   should be treated as a LAN-tested release.
 
 Enemy units remain uncontrollable.
@@ -94,7 +95,7 @@ INI CRC values, so every participant must use the exact same build, game data,
 and `-sharedControl` option. Do not mix this prototype with an ordinary retail
 client.
 
-The next development stage is to validate version 0.2.0 in a private
+The next development stage is to validate version 0.3.0 in a private
 C&C:Online room using the current GenTool/C&C:Online setup. That work includes
 checking that the release launcher loads the required integration, that two
 matching clients can see and join the room, and that a complete match remains
@@ -121,7 +122,7 @@ build\win32-vs2019\GeneralsMD\Release\generalszh.exe
 After building the exact Git revision that will be tagged, run:
 
 ```powershell
-.\scripts\package-shared-control-release.ps1 -Version prototype-0.2.0
+.\scripts\package-shared-control-release.ps1 -Version prototype-0.3.0
 ```
 
 The archive contains the executable, launcher, license, and this guide. Publish
