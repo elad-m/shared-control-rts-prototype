@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Shared-Control Transfer Test</title>
+  <title>Mixed Allied Garrisons Option Test</title>
   <style>
     :root { color-scheme: dark; --bg:#10140f; --panel:#192018; --panel2:#222b20; --border:#3f513b; --text:#edf2e9; --muted:#aebaa9; --accent:#8fbd63; --warn:#d2a94b; }
     * { box-sizing: border-box; }
@@ -43,13 +43,13 @@
 <body>
   <main>
     <header>
-      <h1>Resource Transfer Regression Test</h1>
+      <h1>Mixed Allied Garrisons Option Test</h1>
       <p class="muted">Current shared-control development build · Computers A and B · LAN</p>
     </header>
 
     <div class="summary">
-      <div class="summary-row"><strong id="progressText">0 / 13 complete</strong><progress id="progress" value="0" max="13"></progress></div>
-      <p class="muted">This run verifies direct fund transfers and the latest shared-control selection fixes. Building ownership transfer has been removed. See <a href="ROADMAP.html">the feature roadmap</a>.</p>
+      <div class="summary-row"><strong id="progressText">0 / 15 complete</strong><progress id="progress" value="0" max="15"></progress></div>
+      <p class="muted">This run verifies that the host-controlled option is synchronized and fully disables or enables all three mixed-garrison behaviors. See <a href="ROADMAP.html">the feature roadmap</a>.</p>
     </div>
 
     <section>
@@ -73,43 +73,39 @@
     </section>
 
     <section>
-      <header><h2>1. Create the match</h2><span class="badge">Setup</span></header>
+      <header><h2>1. Disabled match</h2><span class="badge">Default behavior</span></header>
       <ol>
         <li><label><input type="checkbox" data-test="room"><span>A hosts; B joins. Put both on one team and add an enemy AI.</span></label></li>
-        <li><label><input type="checkbox" data-test="armies"><span>Choose <strong>China for A</strong> and <strong>GLA for B</strong>. Use generous starting cash.</span></label></li>
-        <li><label><input type="checkbox" data-test="start"><span>Both clients load, remain synchronized, and show the correct hostile enemy.</span></label></li>
-        <li><label><input type="checkbox" data-test="startup-command-center"><span>At match start, each computer has its own Command Center selected and can immediately queue its worker or Dozer.</span></label></li>
+        <li><label><input type="checkbox" data-test="option-default"><span><strong>Allow Mixed Allied Garrisons</strong> is visible and unchecked by default.</span></label></li>
+        <li><label><input type="checkbox" data-test="client-disabled"><span>B sees the same unchecked option but cannot change it.</span></label></li>
+        <li><label><input type="checkbox" data-test="disabled-transport"><span>Start with it off. Allied infantry cannot enter the other army's transport.</span></label></li>
+        <li><label><input type="checkbox" data-test="disabled-building"><span>Allied infantry cannot enter the other army's owned bunker or Firebase.</span></label></li>
+        <li><label><input type="checkbox" data-test="disabled-pilot"><span>An allied pilot cannot enter the other army's vehicle.</span></label></li>
+        <li><label><input type="checkbox" data-test="disabled-own"><span>Each army can still use its own transports, buildings, and pilots normally.</span></label></li>
       </ol>
     </section>
 
     <section>
-      <header><h2>2. Fund transfers and UI</h2><span class="badge">Immediately</span></header>
+      <header><h2>2. Enabled match</h2><span class="badge">Opt-in behavior</span></header>
       <ol>
-        <li><label><input type="checkbox" data-test="funds-layout"><span>Each eligible ally row shows three non-overlapping money buttons: <strong>$500</strong>, <strong>$1K</strong>, and <strong>$5K</strong>.</span></label></li>
-        <li><label><input type="checkbox" data-test="money-exact"><span>Send $500, $1K, and $5K from A to B. Each balance changes by exactly that amount.</span></label></li>
-        <li><label><input type="checkbox" data-test="money-reverse"><span>Send money from B back to A. Both clients show the correct notification once.</span></label></li>
-        <li><label><input type="checkbox" data-test="money-limit"><span>With less than $5,000, the $5K button is disabled and sends nothing.</span></label></li>
-        <li><label><input type="checkbox" data-test="ui-boundaries"><span>Money buttons never appear for self, enemies, inactive players, or observers.</span></label></li>
-        <li><label><input type="checkbox" data-test="allied-container-pips"><span>Select an allied occupied vehicle such as a Chinook. Its green infantry/passenger pips appear below the health bar; allied ammunition pips also remain visible.</span></label></li>
-      </ol>
-    </section>
-
-    <section>
-      <header><h2>3. Stress and synchronization</h2><span class="badge warning">Finish</span></header>
-      <ol>
-        <li><label><input type="checkbox" data-test="stress-sync"><span>Alternate at least ten fund transfers, continue fighting, and confirm no duplicate action, mismatch, freeze, crash, or disconnect.</span></label></li>
+        <li><label><input type="checkbox" data-test="option-enable"><span>Rehost. A enables the option; B sees it checked and cannot change it.</span></label></li>
+        <li><label><input type="checkbox" data-test="ready-reset"><span>Changing the option clears player readiness.</span></label></li>
+        <li><label><input type="checkbox" data-test="enabled-transport"><span>Mixed allied infantry can share either army's transport and fire from it.</span></label></li>
+        <li><label><input type="checkbox" data-test="enabled-building"><span>Mixed allied infantry can share neutral and owned garrison buildings.</span></label></li>
+        <li><label><input type="checkbox" data-test="enabled-pilot"><span>A higher-ranked allied pilot promotes the vehicle to that exact rank without changing its owner.</span></label></li>
+        <li><label><input type="checkbox" data-test="stress-sync"><span>Play for five minutes. No mismatch, freeze, crash, or disconnect occurs.</span></label></li>
       </ol>
     </section>
 
     <section>
       <header><h2>Result notes</h2><span class="badge warning">Record first failure</span></header>
-      <div class="notes"><textarea id="notes" placeholder="Record the stage, sender, recipient, amount, balances, computer used, and approximate match time."></textarea></div>
+      <div class="notes"><textarea id="notes" placeholder="Record the first failed case, armies, unit or building type, computer used, and approximate match time."></textarea></div>
     </section>
 
     <div class="footer-actions"><button id="reset" type="button">Reset checklist</button></div>
   </main>
   <script>
-    const storageKey = "generals-funds-only-regression-test-v6";
+    const storageKey = "generals-mixed-garrison-option-test-v2";
     const checkboxes = [...document.querySelectorAll('input[type="checkbox"]')];
     const notes = document.querySelector('#notes');
     const progress = document.querySelector('#progress');

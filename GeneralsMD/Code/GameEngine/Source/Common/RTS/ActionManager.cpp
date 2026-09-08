@@ -48,6 +48,7 @@
 #include "GameClient/InGameUI.h"
 
 #include "GameLogic/Object.h"
+#include "GameLogic/GameLogic.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/Module/BodyModule.h"
 #include "GameLogic/Module/ContainModule.h"
@@ -70,6 +71,19 @@
 ActionManager *TheActionManager = nullptr;
 
 // LOCAL //////////////////////////////////////////////////////////////////////////////////////////
+
+// ------------------------------------------------------------------------------------------------
+static Bool areSharedControlAllies(const Player *player, const Object *object)
+{
+	const Player *objectPlayer = object ? object->getControllingPlayer() : nullptr;
+
+	return TheGlobalData && TheGlobalData->m_sharedControl
+		&& TheGameLogic && TheGameLogic->getAllowMixedAlliedGarrisons()
+		&& player && objectPlayer && object->getTeam()
+		&& player->getPlayerType() == PLAYER_HUMAN
+		&& objectPlayer->getPlayerType() == PLAYER_HUMAN
+		&& player->getRelationship(object->getTeam()) == ALLIES;
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -690,7 +704,8 @@ Bool ActionManager::canEnterObject( const Object *obj, const Object *objectToEnt
 		Int nonStealthContainCount = containCount - stealthContainCount;
 
 		// not ours... must do special checks.
-		if (objectToEnter->getControllingPlayer() != obj->getControllingPlayer())
+		if (objectToEnter->getControllingPlayer() != obj->getControllingPlayer()
+				&& !areSharedControlAllies(obj->getControllingPlayer(), objectToEnter))
 		{
 			// not empty... can't do it.
 			if (nonStealthContainCount > 0)
@@ -2078,6 +2093,11 @@ Bool ActionManager::canGarrison( const Object *obj, const Object *target, Comman
 		return cmi->isValidContainerFor(obj, true);
 	}
 
+	if (areSharedControlAllies(obj->getControllingPlayer(), target))
+	{
+		return cmi->isValidContainerFor(obj, true);
+	}
+
 	if (obj->getControllingPlayer()->getRelationship(target->getTeam()) == NEUTRAL)
 	{
 		// needs to be empty if its not already ours.
@@ -2108,6 +2128,11 @@ Bool ActionManager::canPlayerGarrison( const Player *player, const Object *targe
 		return false;
 
 	if (player == target->getControllingPlayer())
+	{
+		return true;
+	}
+
+	if (areSharedControlAllies(player, target))
 	{
 		return true;
 	}

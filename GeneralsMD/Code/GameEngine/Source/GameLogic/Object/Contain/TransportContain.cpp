@@ -30,6 +30,7 @@
 // USER INCLUDES //////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
+#include "Common/GlobalData.h"
 #include "Common/Player.h"
 #include "Common/ThingTemplate.h"
 #include "Common/ThingFactory.h"
@@ -37,6 +38,7 @@
 #include "GameClient/Drawable.h"
 #include "GameLogic/AI.h"
 #include "GameLogic/AIPathfind.h"
+#include "GameLogic/GameLogic.h"
 #include "GameLogic/Locomotor.h"
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/BodyModule.h"
@@ -187,9 +189,22 @@ Bool TransportContain::isValidContainerFor(const Object* rider, Bool checkCapaci
 //	if (getObject()->getRelationship(rider) != ALLIES)
 //		return false;
 
-// no... actually, only OUR OWN units can be transported.
+// Normally only our own units can be transported. Shared control deliberately permits human allies
+// to mix passengers without changing either the transport's or the passengers' ownership.
 	if (rider->getControllingPlayer() != getObject()->getControllingPlayer())
-		return false;
+	{
+		const Player *riderPlayer = rider->getControllingPlayer();
+		const Player *transportPlayer = getObject()->getControllingPlayer();
+		if (!(TheGlobalData && TheGlobalData->m_sharedControl
+				&& TheGameLogic && TheGameLogic->getAllowMixedAlliedGarrisons()
+				&& riderPlayer && transportPlayer && getObject()->getTeam()
+				&& riderPlayer->getPlayerType() == PLAYER_HUMAN
+				&& transportPlayer->getPlayerType() == PLAYER_HUMAN
+				&& riderPlayer->getRelationship(getObject()->getTeam()) == ALLIES))
+		{
+			return false;
+		}
+	}
 
 	Int transportSlotCount = rider->getTransportSlotCount();
 

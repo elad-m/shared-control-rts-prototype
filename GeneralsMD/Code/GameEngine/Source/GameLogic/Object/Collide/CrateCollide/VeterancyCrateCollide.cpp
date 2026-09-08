@@ -29,9 +29,11 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+#include "Common/GlobalData.h"
 #include "Common/Player.h"
 #include "Common/Xfer.h"
 #include "GameLogic/ExperienceTracker.h"
+#include "GameLogic/GameLogic.h"
 #include "GameLogic/Object.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/Module/VeterancyCrateCollide.h"
@@ -85,10 +87,6 @@ Bool VeterancyCrateCollide::isValidToExecute( const Object *other ) const
 		return false;
 	}
 
-	Int levelsToGain = getLevelsToGain();
-	if (levelsToGain <= 0)
-		return false;
-
 	const ExperienceTracker *et = other->getExperienceTracker();
 	if( !et || !et->isTrainable() )
 	{
@@ -96,18 +94,24 @@ Bool VeterancyCrateCollide::isValidToExecute( const Object *other ) const
 		return false;
 	}
 
-	if (!et || !et->canGainExpForLevel(levelsToGain))
-		return false;
-
 	if( d->m_isPilot )
 	{
-		if( other->getControllingPlayer() != getObject()->getControllingPlayer() )
+		const Player *pilotPlayer = getObject()->getControllingPlayer();
+		const Player *vehiclePlayer = other->getControllingPlayer();
+		if( vehiclePlayer != pilotPlayer
+				&& !(TheGlobalData && TheGlobalData->m_sharedControl
+					&& TheGameLogic && TheGameLogic->getAllowMixedAlliedGarrisons()
+					&& pilotPlayer && vehiclePlayer && other->getTeam()
+					&& pilotPlayer->getPlayerType() == PLAYER_HUMAN
+					&& vehiclePlayer->getPlayerType() == PLAYER_HUMAN
+					&& pilotPlayer->getRelationship(other->getTeam()) == ALLIES) )
 		{
-			//This is a pilot and we are checking to make sure the pilot is entering a vehicle on
-			//the same team. If it's not, then don't allow it.. this is particularly the case for
-			//pilots attempting to enter civilian vehicles.
+			// Pilots may promote their own vehicles, or human allied vehicles in shared control.
 			return false;
 		}
+
+		if (getObject()->getVeterancyLevel() <= other->getVeterancyLevel())
+			return false;
 
 		if( other->isUsingAirborneLocomotor() )
 		{
@@ -115,6 +119,12 @@ Bool VeterancyCrateCollide::isValidToExecute( const Object *other ) const
 			// is on the ground from being built.
 			return false;
 		}
+	}
+	else
+	{
+		Int levelsToGain = getLevelsToGain();
+		if (levelsToGain <= 0 || !et->canGainExpForLevel(levelsToGain))
+			return false;
 	}
 
 	return true;
@@ -134,14 +144,18 @@ Bool VeterancyCrateCollide::executeCrateBehavior( Object *other )
  		return false;
  	}
 
-	Int levelsToGain = getLevelsToGain();
 	Real range = md->m_rangeOfEffect;
-	if (range == 0)
+	if (md->m_isPilot)
+	{
+		// A pilot is consumed to transfer its exact, higher rank. Ownership never changes.
+		other->getExperienceTracker()->setVeterancyLevel(getObject()->getVeterancyLevel());
+	}
+	else if (range == 0)
 	{
 		// do just the collider
 		if (other != nullptr)
 		{
-			other->getExperienceTracker()->gainExpForLevel( levelsToGain, ( ! md->m_isPilot) );
+			other->getExperienceTracker()->gainExpForLevel( getLevelsToGain(), TRUE );
 		}
 	}
 	else
@@ -155,13 +169,14 @@ Bool VeterancyCrateCollide::executeCrateBehavior( Object *other )
 		for( Object *potentialObject = iter->first(); potentialObject; potentialObject = iter->next() )
 		{
 			// This function will give just enough exp for the Object to gain a level, if it can
-			potentialObject->getExperienceTracker()->gainExpForLevel( levelsToGain, ( ! md->m_isPilot) );
+			potentialObject->getExperienceTracker()->gainExpForLevel( getLevelsToGain(), TRUE );
 		}
 	}
 
 	//In order to make things easier for the designers, we are going to transfer the terrorist name
 	//to the car... so the designer can control the car with their scripts.
-	if( md->m_isPilot )
+	if( md->m_isPilot
+			&& getObject()->getControllingPlayer() == other->getControllingPlayer() )
 	{
 		TheScriptEngine->transferObjectName( getObject()->getName(), other );
 	}

@@ -198,6 +198,8 @@ public:
 
   inline UnsignedShort getSuperweaponRestriction() const; ///< Get any optional limits on superweapons
   void setSuperweaponRestriction( UnsignedShort restriction ); ///< Set the optional limits on superweapons
+  inline Bool getAllowMixedAlliedGarrisons() const; ///< May human allies share transports and garrisons?
+  inline void setAllowMixedAlliedGarrisons( Bool allow );
   inline const Money & getStartingCash() const;
   void setStartingCash( const Money & startingCash );
 
@@ -252,6 +254,7 @@ protected:
 	Int m_useStats;
   Money         m_startingCash;
   UnsignedShort m_superweaponRestriction;
+  Bool m_allowMixedAlliedGarrisons;
   Bool m_oldFactionsOnly; // Only USA, China, GLA -- not USA Air Force General, GLA Toxic General, et al
 };
 
@@ -272,6 +275,8 @@ Int					GameInfo::getUseStats() const             { return m_useStats; }
 void				GameInfo::setUseStats( Int useStats )           { m_useStats = useStats; }
 const Money&GameInfo::getStartingCash() const         { return m_startingCash; }
 UnsignedShort GameInfo::getSuperweaponRestriction() const { return m_superweaponRestriction; }
+Bool        GameInfo::getAllowMixedAlliedGarrisons() const { return m_allowMixedAlliedGarrisons; }
+void        GameInfo::setAllowMixedAlliedGarrisons( Bool allow ) { m_allowMixedAlliedGarrisons = allow; }
 Bool        GameInfo::oldFactionsOnly() const           { return m_oldFactionsOnly; }
 void        GameInfo::setOldFactionsOnly( Bool oldFactionsOnly ) { m_oldFactionsOnly = oldFactionsOnly; }
 

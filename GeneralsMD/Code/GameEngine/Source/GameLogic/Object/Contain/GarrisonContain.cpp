@@ -1220,13 +1220,51 @@ void GarrisonContain::recalcApparentControllingPlayer()
 		ContainedItemsList::const_iterator it = getContainList().begin();
 		Object *rider = *it;
 
+		const Bool useStableMixedGarrisonController = TheGameLogic
+			&& TheGameLogic->getAllowMixedAlliedGarrisons();
+
+		// With mixed allied garrisons enabled, a faction structure keeps its real owner's flag.
+		// A civilian structure keeps its current garrison leader while that player remains inside.
+		if (useStableMixedGarrisonController && m_originalTeam && getObject()->isFactionStructure())
+		{
+			Player *originalPlayer = m_originalTeam->getControllingPlayer();
+			if (originalPlayer)
+			{
+				for (it = getContainList().begin(); it != getContainList().end(); ++it)
+				{
+					if ((*it)->getControllingPlayer() == originalPlayer)
+					{
+						rider = *it;
+						break;
+					}
+				}
+			}
+		}
+		else if (useStableMixedGarrisonController)
+		{
+			Player *currentPlayer = getObject()->getControllingPlayer();
+			if (currentPlayer)
+			{
+				for (it = getContainList().begin(); it != getContainList().end(); ++it)
+				{
+					if ((*it)->getControllingPlayer() == currentPlayer)
+					{
+						rider = *it;
+						break;
+					}
+				}
+			}
+		}
+
 		// Check to see if all the contained units are stealthy.  Need to set this flag before the capture,
 		// since the Radar refresh in setTeam will want to use it to decide our color.
 		Bool detected = rider->getStatusBits().test( OBJECT_STATUS_DETECTED );
 		m_hideGarrisonedStateFromNonallies = ( !detected && ( getStealthUnitsContained() == getContainCount() ) );
 
 		Player* controller = rider->getControllingPlayer();
-		Team *team = controller ? controller->getDefaultTeam() : nullptr;
+		Team *team = (useStableMixedGarrisonController && m_originalTeam && getObject()->isFactionStructure())
+			? m_originalTeam
+			: (controller ? controller->getDefaultTeam() : nullptr);
 		if( team )
 		{
 			getObject()->setTeam( team );

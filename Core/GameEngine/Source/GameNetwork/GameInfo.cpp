@@ -315,6 +315,7 @@ void GameInfo::reset()
 	m_mapCRC = 0;
 	m_mapSize = 0;
   m_superweaponRestriction = 0;
+  m_allowMixedAlliedGarrisons = FALSE;
   m_startingCash = TheGlobalData->m_defaultStartingCash;
 
 	for (Int i=0; i<MAX_SLOTS; ++i)
@@ -925,9 +926,10 @@ AsciiString GameInfoToAsciiString( const GameInfo *game )
 	optionsString.format("M=%2.2x%s;MC=%X;MS=%d;SD=%d;C=%d;", game->getMapContentsMask(), newMapName.str(),
 		game->getMapCRC(), game->getMapSize(), game->getSeed(), game->getCRCInterval());
 #else
-	optionsString.format("US=%d;M=%2.2x%s;MC=%X;MS=%d;SD=%d;C=%d;SR=%u;SC=%u;O=%c;", game->getUseStats(), game->getMapContentsMask(), newMapName.str(),
+	optionsString.format("US=%d;M=%2.2x%s;MC=%X;MS=%d;SD=%d;C=%d;SR=%u;SC=%u;O=%c;MG=%c;", game->getUseStats(), game->getMapContentsMask(), newMapName.str(),
 		game->getMapCRC(), game->getMapSize(), game->getSeed(), game->getCRCInterval(), game->getSuperweaponRestriction(),
-		game->getStartingCash().countMoney(), game->oldFactionsOnly() ? 'Y' : 'N' );
+		game->getStartingCash().countMoney(), game->oldFactionsOnly() ? 'Y' : 'N',
+		game->getAllowMixedAlliedGarrisons() ? 'Y' : 'N' );
 #endif
 
 	//add player info for each slot
@@ -1021,6 +1023,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 	Int useStats = TRUE;
   Money startingCash = TheGlobalData->m_defaultStartingCash;
   UnsignedShort restriction = 0; // Always the default
+  Bool allowMixedAlliedGarrisons = FALSE;
 
 	Bool sawMap = FALSE;
 	Bool sawMapCRC = FALSE;
@@ -1140,6 +1143,10 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
       oldFactionsOnly = ( val.compareNoCase( "Y" ) == 0 );
       sawOldFactions = TRUE;
     }
+		else if (key.compare("MG") == 0 )
+		{
+			allowMixedAlliedGarrisons = ( val.compareNoCase( "Y" ) == 0 );
+		}
 		else if (key.getLength() == 1 && *key.str() == slotListID)
 		{
 			sawSlotlist = true;
@@ -1506,6 +1513,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 		game->setCRCInterval(crc);
 		game->setUseStats(useStats);
 		game->setSuperweaponRestriction(restriction);
+		game->setAllowMixedAlliedGarrisons(allowMixedAlliedGarrisons);
 		game->setStartingCash(startingCash);
 		game->setOldFactionsOnly(oldFactionsOnly);
 

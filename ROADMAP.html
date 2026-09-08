@@ -34,7 +34,7 @@
   <main>
     <header>
       <h1>Generals Shared Control Roadmap</h1>
-      <p class="muted">Living feature plan for the playable Zero Hour shared-control build · updated 2 September 2026</p>
+      <p class="muted">Living feature plan for the playable Zero Hour shared-control build · updated 7 September 2026</p>
       <p><a href="manual-test.html">Open the current manual test</a></p>
     </header>
 
@@ -64,6 +64,8 @@
     <section>
       <header><h2>Networking and remaining issues</h2><span class="status later">Planned</span></header>
       <div class="items">
+        <article><span class="status now">Test</span><div><strong>Optional mixed allied transports and garrisons</strong><p>A host-controlled <em>Allow Mixed Allied Garrisons</em> option now gates shared passenger vehicles, shared garrison space, and allied-pilot promotion. It is off by default and synchronized to every client. Owned structures keep their owner's flag; civilian garrison leadership passes only when the current leader has no occupants left. Complete the focused two-PC enabled/disabled checklist before marking this done.</p></div></article>
+        <article><span class="status now">Current</span><div><strong>Restore a fully green GenCI build matrix</strong><p>The tested modern Win32 Zero Hour builds pass. Legacy VC6 Zero Hour builds fail on the empty two-dimensional transfer-button initializer in <code>Diplomacy.cpp</code>; original Generals builds fail because shared Core UI code references the Zero Hour-only shared-control setting and two-argument GUI-command API. Keep both games and the historical compiler targets compatible, then rerun GenCI.</p></div></article>
         <article><span class="status later">Planned</span><div><strong>C&amp;C:Online match verification</strong><p>Windows 11 reaches Generals Online and both accounts entered a lobby. Full peer mesh/start still needs testing with a second suitable Windows 11 PC; Windows 8.1 compatibility remains problematic.</p></div></article>
         <article><span class="status hold">Low priority</span><div><strong>Allied control-group number badge</strong><p>Allied control groups select and receive commands correctly, but the group number is only drawn for locally owned units.</p></div></article>
         <article><span class="status done">Done</span><div><strong>Shared-control selection polish</strong><p>Each client starts with its own Command Center selected, and allied controlled vehicles now draw passenger and ammunition pips.</p></div></article>

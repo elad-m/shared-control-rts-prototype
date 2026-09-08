@@ -249,6 +249,7 @@ GameLogic::GameLogic()
 	m_isInUpdate = FALSE;
 
 	m_rankPointsToAddAtGameStart = 0;
+	m_allowMixedAlliedGarrisons = FALSE;
 
 	for(Int i = 0; i < MAX_SLOTS; i++)
 	{
@@ -1270,11 +1271,13 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
     if ( TheGameInfo )
     {
       m_superweaponRestriction = TheGameInfo->getSuperweaponRestriction();
+			m_allowMixedAlliedGarrisons = TheGameInfo->getAllowMixedAlliedGarrisons();
     }
     else
     {
       // ??? Apparently this is legit? Oh well, use defaults
       m_superweaponRestriction = 0;
+			m_allowMixedAlliedGarrisons = FALSE;
     }
   }
 
@@ -5001,6 +5004,7 @@ void GameLogic::prepareLogicForObjectLoad()
 	* 9: Added m_rankPointsToAddAtGameStart, or else on a load game, your RestartGame button will forget your exp
   * 10: xfer m_superweaponRestriction
   * 11: TheSuperHackers @fix Save objects in reverse order so they load in correct order
+	* 12: xfer m_allowMixedAlliedGarrisons
 	*/
 // ------------------------------------------------------------------------------------------------
 void GameLogic::xfer( Xfer *xfer )
@@ -5010,7 +5014,7 @@ void GameLogic::xfer( Xfer *xfer )
 #if RETAIL_COMPATIBLE_XFER_SAVE
 	const XferVersion currentVersion = 10;
 #else
-	const XferVersion currentVersion = 11;
+	const XferVersion currentVersion = 12;
 #endif
 	XferVersion version = currentVersion;
 	xfer->xferVersion( &version, currentVersion );
@@ -5360,6 +5364,15 @@ void GameLogic::xfer( Xfer *xfer )
   {
     m_superweaponRestriction = 0;
   }
+
+	if ( version >= 12 )
+	{
+		xfer->xferBool( &m_allowMixedAlliedGarrisons );
+	}
+	else if ( xfer->getXferMode() == XFER_LOAD )
+	{
+		m_allowMixedAlliedGarrisons = FALSE;
+	}
 }
 
 // ------------------------------------------------------------------------------------------------

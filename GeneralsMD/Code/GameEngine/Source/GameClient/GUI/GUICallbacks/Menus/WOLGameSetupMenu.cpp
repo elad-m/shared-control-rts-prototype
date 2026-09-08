@@ -196,6 +196,7 @@ static NameKeyType windowMapID = NAMEKEY_INVALID;
 static NameKeyType windowMapSelectMapID = NAMEKEY_INVALID;
 static NameKeyType checkBoxUseStatsID = NAMEKEY_INVALID;
 static NameKeyType checkBoxLimitSuperweaponsID = NAMEKEY_INVALID;
+static NameKeyType checkBoxAllowMixedAlliedGarrisonsID = NAMEKEY_INVALID;
 static NameKeyType comboBoxStartingCashID = NAMEKEY_INVALID;
 static NameKeyType checkBoxLimitArmiesID = NAMEKEY_INVALID;
 
@@ -210,6 +211,7 @@ static GameWindow *textEntryMapDisplay = nullptr;
 static GameWindow *windowMap = nullptr;
 static GameWindow *checkBoxUseStats = nullptr;
 static GameWindow *checkBoxLimitSuperweapons = nullptr;
+static GameWindow *checkBoxAllowMixedAlliedGarrisons = nullptr;
 static GameWindow *comboBoxStartingCash = nullptr;
 static GameWindow *checkBoxLimitArmies = nullptr;
 
@@ -799,6 +801,62 @@ static void handleLimitSuperweaponsClick()
   }
 }
 
+static void handleAllowMixedAlliedGarrisonsClick()
+{
+  GameInfo *myGame = TheGameSpyInfo->getCurrentStagingRoom();
+
+  if (myGame)
+  {
+    myGame->setAllowMixedAlliedGarrisons(
+      GadgetCheckBoxIsChecked(checkBoxAllowMixedAlliedGarrisons));
+    myGame->resetAccepted();
+
+    if (myGame->amIHost())
+    {
+      TheGameSpyInfo->setGameOptions();
+      WOLDisplaySlotList();
+    }
+  }
+}
+
+static GameWindow *createAllowMixedAlliedGarrisonsCheckBox(GameWindow *parent, GameWindow *model,
+                                                            NameKeyType id, Int x, Int y, Int width, Int height)
+{
+  WinInstanceData data;
+  data.m_id = id;
+  data.m_style = GWS_CHECK_BOX | GWS_MOUSE_TRACK;
+  data.m_decoratedNameString = "GameSpyGameOptionsMenu.wnd:CheckboxAllowMixedAlliedGarrisons";
+
+  GameWindow *checkbox = TheWindowManager->gogoGadgetCheckbox(parent, model->winGetStatus(),
+    x, y, width, height, &data, model->winGetFont(), TRUE);
+  if (!checkbox)
+    return nullptr;
+
+  for (Int i = 0; i < MAX_DRAW_DATA; ++i)
+  {
+    checkbox->winSetEnabledImage(i, model->winGetEnabledImage(i));
+    checkbox->winSetEnabledColor(i, model->winGetEnabledColor(i));
+    checkbox->winSetEnabledBorderColor(i, model->winGetEnabledBorderColor(i));
+    checkbox->winSetDisabledImage(i, model->winGetDisabledImage(i));
+    checkbox->winSetDisabledColor(i, model->winGetDisabledColor(i));
+    checkbox->winSetDisabledBorderColor(i, model->winGetDisabledBorderColor(i));
+    checkbox->winSetHiliteImage(i, model->winGetHiliteImage(i));
+    checkbox->winSetHiliteColor(i, model->winGetHiliteColor(i));
+    checkbox->winSetHiliteBorderColor(i, model->winGetHiliteBorderColor(i));
+  }
+  checkbox->winSetEnabledTextColors(model->winGetEnabledTextColor(), model->winGetEnabledTextBorderColor());
+  checkbox->winSetDisabledTextColors(model->winGetDisabledTextColor(), model->winGetDisabledTextBorderColor());
+  checkbox->winSetHiliteTextColors(model->winGetHiliteTextColor(), model->winGetHiliteTextBorderColor());
+
+  UnicodeString label;
+  label.format(L"Allow Mixed Allied Garrisons");
+  GadgetCheckBoxSetText(checkbox, label);
+  UnicodeString tooltip;
+  tooltip.format(L"Allow human allies to share transports and buildings, and allied pilots to promote vehicles.");
+  checkbox->winSetTooltip(tooltip);
+  return checkbox;
+}
+
 
 static void StartPressed()
 {
@@ -1009,6 +1067,10 @@ void WOLDisplayGameOptions()
   if ( limitSuperweapons != GadgetCheckBoxIsChecked(checkBoxLimitSuperweapons))
     GadgetCheckBoxSetChecked( checkBoxLimitSuperweapons, limitSuperweapons );
 
+  Bool allowMixedAlliedGarrisons = theGame->getAllowMixedAlliedGarrisons();
+  if (allowMixedAlliedGarrisons != GadgetCheckBoxIsChecked(checkBoxAllowMixedAlliedGarrisons))
+    GadgetCheckBoxSetChecked(checkBoxAllowMixedAlliedGarrisons, allowMixedAlliedGarrisons);
+
   Int itemCount = GadgetComboBoxGetLength(comboBoxStartingCash);
   Int index = 0;
   for ( ; index < itemCount; index++ )
@@ -1111,6 +1173,7 @@ void InitWOLGameGadgets()
 	checkBoxUseStatsID = TheNameKeyGenerator->nameToKey( "GameSpyGameOptionsMenu.wnd:CheckBoxUseStats" );
 	windowMapID = TheNameKeyGenerator->nameToKey( "GameSpyGameOptionsMenu.wnd:MapWindow" );
   checkBoxLimitSuperweaponsID = TheNameKeyGenerator->nameToKey("GameSpyGameOptionsMenu.wnd:CheckboxLimitSuperweapons");
+  checkBoxAllowMixedAlliedGarrisonsID = TheNameKeyGenerator->nameToKey("GameSpyGameOptionsMenu.wnd:CheckboxAllowMixedAlliedGarrisons");
   comboBoxStartingCashID = TheNameKeyGenerator->nameToKey("GameSpyGameOptionsMenu.wnd:ComboBoxStartingCash");
   checkBoxLimitArmiesID = TheNameKeyGenerator->nameToKey("GameSpyGameOptionsMenu.wnd:CheckBoxLimitArmies");
 	windowMapSelectMapID = TheNameKeyGenerator->nameToKey("WOLMapSelectMenu.wnd:WinMapPreview");
@@ -1138,6 +1201,30 @@ void InitWOLGameGadgets()
   checkBoxLimitArmies = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, checkBoxLimitArmiesID );
   DEBUG_ASSERTCRASH(windowMap, ("Could not find the GameSpyGameOptionsMenu.wnd:CheckBoxLimitArmies" ));
 
+  // Keep the new gameplay option beside superweapons and starting cash. The two read-only
+  // room properties move to the spare row above chat.
+  Int optionX, optionY, optionWidth, optionHeight;
+  Int mixedX, mixedY, mixedRight, mixedWidth, mixedHeight;
+  checkBoxLimitSuperweapons->winGetPosition(&optionX, &optionY);
+  checkBoxLimitSuperweapons->winGetSize(&optionWidth, &optionHeight);
+  checkBoxUseStats->winGetPosition(&mixedX, &mixedY);
+  checkBoxUseStats->winGetSize(&mixedWidth, &mixedHeight);
+  checkBoxLimitArmies->winGetPosition(&mixedRight, &mixedY);
+  checkBoxLimitArmies->winGetSize(&mixedWidth, &mixedHeight);
+  mixedRight += mixedWidth;
+  checkBoxUseStats->winSetPosition(optionX, optionY + optionHeight + 4);
+  checkBoxLimitArmies->winSetPosition(optionX + 162, optionY + optionHeight + 4);
+  checkBoxAllowMixedAlliedGarrisons = createAllowMixedAlliedGarrisonsCheckBox(
+    checkBoxLimitSuperweapons->winGetParent(), checkBoxLimitSuperweapons,
+    checkBoxAllowMixedAlliedGarrisonsID, mixedX, optionY, mixedRight - mixedX, optionHeight);
+  DEBUG_ASSERTCRASH(checkBoxAllowMixedAlliedGarrisons,
+    ("Could not create the GameSpyGameOptionsMenu.wnd:CheckboxAllowMixedAlliedGarrisons" ));
+  Int chatX, chatY, chatWidth, chatHeight;
+  listboxGameSetupChat->winGetPosition(&chatX, &chatY);
+  listboxGameSetupChat->winGetSize(&chatWidth, &chatHeight);
+  listboxGameSetupChat->winSetPosition(chatX, chatY + 26);
+  listboxGameSetupChat->winSetSize(chatWidth, chatHeight - 26);
+
   // Limit Armies can ONLY be set in the Host Game window (PopupHostGame.wnd)
   checkBoxLimitArmies->winEnable( false );
   // Ditto use stats
@@ -1149,6 +1236,7 @@ void InitWOLGameGadgets()
   if ( !TheGameSpyGame->amIHost() )
   {
     checkBoxLimitSuperweapons->winEnable( false );
+    checkBoxAllowMixedAlliedGarrisons->winEnable( false );
     comboBoxStartingCash->winEnable( false );
 		NameKeyType labelID = TheNameKeyGenerator->nameToKey("GameSpyGameOptionsMenu.wnd:StartingCashLabel");
 		TheWindowManager->winGetWindowFromId(parentWOLGameSetup, labelID)->winEnable( FALSE );
@@ -1159,6 +1247,7 @@ void InitWOLGameGadgets()
 		// Recorded stats games can never limit superweapons, limit armies, or have inflated starting cash.
 		// This should probably be enforced at the gamespy level as well, to prevent exploits.
 		checkBoxLimitSuperweapons->winEnable( FALSE );
+		checkBoxAllowMixedAlliedGarrisons->winEnable( FALSE );
 		comboBoxStartingCash->winEnable( FALSE );
 		checkBoxLimitArmies->winEnable( FALSE );
 		NameKeyType labelID = TheNameKeyGenerator->nameToKey("GameSpyGameOptionsMenu.wnd:StartingCashLabel");
@@ -1284,6 +1373,7 @@ void DeinitWOLGameGadgets()
 	}
 	checkBoxUseStats = nullptr;
   checkBoxLimitSuperweapons = nullptr;
+  checkBoxAllowMixedAlliedGarrisons = nullptr;
   comboBoxStartingCash = nullptr;
 
 //	GameWindow *staticTextTitle = nullptr;
@@ -1463,6 +1553,7 @@ void WOLGameSetupMenuInit( WindowLayout *layout, void *userData )
 		buttonStart->winEnable( FALSE );
 		buttonSelectMap->winEnable( FALSE );
     checkBoxLimitSuperweapons->winEnable( FALSE ); // Can look but only host can touch
+    checkBoxAllowMixedAlliedGarrisons->winEnable( FALSE );
     comboBoxStartingCash->winEnable( FALSE );      // Ditto
 		initialAcceptEnable = FALSE;
 	}
@@ -2753,6 +2844,10 @@ WindowMsgHandledType WOLGameSetupMenuSystem( GameWindow *window, UnsignedInt msg
         {
           handleLimitSuperweaponsClick();
         }
+				else if ( controlID == checkBoxAllowMixedAlliedGarrisonsID )
+				{
+					handleAllowMixedAlliedGarrisonsClick();
+				}
 				else
 				{
 					for (Int i = 0; i < MAX_SLOTS; i++)

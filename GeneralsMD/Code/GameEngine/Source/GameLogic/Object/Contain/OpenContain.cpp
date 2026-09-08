@@ -36,6 +36,7 @@
 #include "Common/BitFlagsIO.h"
 #include "Common/GameAudio.h"
 #include "Common/GameState.h"
+#include "Common/GlobalData.h"
 #include "Common/Module.h"
 #include "Common/Player.h"
 #include "Common/RandomValue.h"
@@ -61,6 +62,20 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// ------------------------------------------------------------------------------------------------
+static Bool areSharedControlHumanAllies(const Object *first, const Object *second)
+{
+	const Player *firstPlayer = first ? first->getControllingPlayer() : nullptr;
+	const Player *secondPlayer = second ? second->getControllingPlayer() : nullptr;
+
+	return TheGlobalData && TheGlobalData->m_sharedControl
+		&& TheGameLogic && TheGameLogic->getAllowMixedAlliedGarrisons()
+		&& firstPlayer && secondPlayer && second->getTeam()
+		&& firstPlayer->getPlayerType() == PLAYER_HUMAN
+		&& secondPlayer->getPlayerType() == PLAYER_HUMAN
+		&& firstPlayer->getRelationship(second->getTeam()) == ALLIES;
+}
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
@@ -855,7 +870,8 @@ void OpenContain::onCollide( Object *other, const Coord3D *loc, const Coord3D *n
 		++it;
 
 		// call it
-		if( rider->getControllingPlayer() != other->getControllingPlayer() )
+		if( rider->getControllingPlayer() != other->getControllingPlayer()
+				&& !areSharedControlHumanAllies(rider, other) )
 		{
 			if( rider->getAI() )
 			{

@@ -113,6 +113,7 @@ static NameKeyType buttonStartID = NAMEKEY_INVALID;
 static NameKeyType buttonEmoteID = NAMEKEY_INVALID;
 static NameKeyType buttonSelectMapID = NAMEKEY_INVALID;
 static NameKeyType checkboxLimitSuperweaponsID = NAMEKEY_INVALID;
+static NameKeyType checkboxAllowMixedAlliedGarrisonsID = NAMEKEY_INVALID;
 static NameKeyType comboBoxStartingCashID = NAMEKEY_INVALID;
 static NameKeyType windowMapID = NAMEKEY_INVALID;
 // Window Pointers ------------------------------------------------------------------------
@@ -124,6 +125,7 @@ static GameWindow *buttonEmote = nullptr;
 static GameWindow *textEntryChat = nullptr;
 static GameWindow *textEntryMapDisplay = nullptr;
 static GameWindow *checkboxLimitSuperweapons = nullptr;
+static GameWindow *checkboxAllowMixedAlliedGarrisons = nullptr;
 static GameWindow *comboBoxStartingCash = nullptr;
 static GameWindow *windowMap = nullptr;
 
@@ -655,6 +657,62 @@ static void handleLimitSuperweaponsClick()
   }
 }
 
+static void handleAllowMixedAlliedGarrisonsClick()
+{
+  LANGameInfo *myGame = TheLAN->GetMyGame();
+
+  if (myGame)
+  {
+    myGame->setAllowMixedAlliedGarrisons(
+      GadgetCheckBoxIsChecked(checkboxAllowMixedAlliedGarrisons));
+    myGame->resetAccepted();
+
+    if (myGame->amIHost() && !s_isIniting)
+    {
+      TheLAN->RequestGameOptions(GenerateGameOptionsString(), true);
+      lanUpdateSlotList();
+    }
+  }
+}
+
+static GameWindow *createAllowMixedAlliedGarrisonsCheckBox(GameWindow *parent, GameWindow *model,
+                                                            NameKeyType id, Int x, Int y, Int width, Int height)
+{
+  WinInstanceData data;
+  data.m_id = id;
+  data.m_style = GWS_CHECK_BOX | GWS_MOUSE_TRACK;
+  data.m_decoratedNameString = "LanGameOptionsMenu.wnd:CheckboxAllowMixedAlliedGarrisons";
+
+  GameWindow *checkbox = TheWindowManager->gogoGadgetCheckbox(parent, model->winGetStatus(),
+    x, y, width, height, &data, model->winGetFont(), TRUE);
+  if (!checkbox)
+    return nullptr;
+
+  for (Int i = 0; i < MAX_DRAW_DATA; ++i)
+  {
+    checkbox->winSetEnabledImage(i, model->winGetEnabledImage(i));
+    checkbox->winSetEnabledColor(i, model->winGetEnabledColor(i));
+    checkbox->winSetEnabledBorderColor(i, model->winGetEnabledBorderColor(i));
+    checkbox->winSetDisabledImage(i, model->winGetDisabledImage(i));
+    checkbox->winSetDisabledColor(i, model->winGetDisabledColor(i));
+    checkbox->winSetDisabledBorderColor(i, model->winGetDisabledBorderColor(i));
+    checkbox->winSetHiliteImage(i, model->winGetHiliteImage(i));
+    checkbox->winSetHiliteColor(i, model->winGetHiliteColor(i));
+    checkbox->winSetHiliteBorderColor(i, model->winGetHiliteBorderColor(i));
+  }
+  checkbox->winSetEnabledTextColors(model->winGetEnabledTextColor(), model->winGetEnabledTextBorderColor());
+  checkbox->winSetDisabledTextColors(model->winGetDisabledTextColor(), model->winGetDisabledTextBorderColor());
+  checkbox->winSetHiliteTextColors(model->winGetHiliteTextColor(), model->winGetHiliteTextBorderColor());
+
+  UnicodeString label;
+  label.format(L"Allow Mixed Allied Garrisons");
+  GadgetCheckBoxSetText(checkbox, label);
+  UnicodeString tooltip;
+  tooltip.format(L"Allow human allies to share transports and buildings, and allied pilots to promote vehicles.");
+  checkbox->winSetTooltip(tooltip);
+  return checkbox;
+}
+
 void lanUpdateSlotList()
 {
 	if(!AreSlotListUpdatesEnabled() || s_isIniting)
@@ -680,6 +738,7 @@ void InitLanGameGadgets()
 	buttonEmoteID = TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:ButtonEmote" );
 	buttonSelectMapID = TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:ButtonSelectMap" );
   checkboxLimitSuperweaponsID = TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:CheckboxLimitSuperweapons" );
+  checkboxAllowMixedAlliedGarrisonsID = TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:CheckboxAllowMixedAlliedGarrisons" );
   comboBoxStartingCashID = TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:ComboBoxStartingCash" );
 	windowMapID = TheNameKeyGenerator->nameToKey( "LanGameOptionsMenu.wnd:MapWindow" );
 
@@ -704,7 +763,34 @@ void InitLanGameGadgets()
   DEBUG_ASSERTCRASH(checkboxLimitSuperweapons, ("Could not find the checkboxLimitSuperweapons"));
   comboBoxStartingCash = TheWindowManager->winGetWindowFromId( parentLanGameOptions, comboBoxStartingCashID );
   DEBUG_ASSERTCRASH(comboBoxStartingCash, ("Could not find the comboBoxStartingCash"));
-	PopulateStartingCashComboBox(comboBoxStartingCash, TheLAN->GetMyGame());
+  PopulateStartingCashComboBox(comboBoxStartingCash, TheLAN->GetMyGame());
+
+  Int optionX, optionY, optionWidth, optionHeight;
+  Int cashX, cashY, cashWidth, cashHeight;
+  Int rowX, rowY, rowWidth, rowHeight;
+  checkboxLimitSuperweapons->winGetPosition(&optionX, &optionY);
+  checkboxLimitSuperweapons->winGetSize(&optionWidth, &optionHeight);
+  comboBoxStartingCash->winGetPosition(&cashX, &cashY);
+  comboBoxStartingCash->winGetSize(&cashWidth, &cashHeight);
+  listboxChatWindowLanGame->winGetPosition(&rowX, &rowY);
+  listboxChatWindowLanGame->winGetSize(&rowWidth, &rowHeight);
+
+  // The cash label is an unnamed legacy window, so leave that complete group in
+  // place and space all three groups by equal center-to-center distances. The
+  // cash group's visual center is one tenth of a combo width past the combo's
+  // left edge in the stock layout at every shell scale.
+  const Int mixedVisualWidth = optionWidth * 5 / 4;
+  const Int cashVisualCenter = cashX + cashWidth / 10;
+  const Int mixedVisualCenter = rowX + rowWidth - mixedVisualWidth / 2;
+  const Int centerStep = (mixedVisualCenter - cashVisualCenter) / 2;
+  const Int superweaponX = cashVisualCenter + centerStep - optionWidth / 2;
+  const Int mixedGarrisonX = mixedVisualCenter - mixedVisualWidth / 2;
+  const Int mixedGarrisonWidth = mixedVisualWidth;
+  checkboxLimitSuperweapons->winSetPosition(superweaponX, optionY);
+  checkboxAllowMixedAlliedGarrisons = createAllowMixedAlliedGarrisonsCheckBox(checkboxLimitSuperweapons->winGetParent(),
+    checkboxLimitSuperweapons, checkboxAllowMixedAlliedGarrisonsID,
+    mixedGarrisonX, optionY, mixedGarrisonWidth, optionHeight);
+  DEBUG_ASSERTCRASH(checkboxAllowMixedAlliedGarrisons, ("Could not create the checkboxAllowMixedAlliedGarrisons"));
 
 	windowMap = TheWindowManager->winGetWindowFromId( parentLanGameOptions,windowMapID  );
 	DEBUG_ASSERTCRASH(windowMap, ("Could not find the LanGameOptionsMenu.wnd:MapWindow" ));
@@ -799,6 +885,7 @@ void DeinitLanGameGadgets()
 	textEntryChat = nullptr;
 	textEntryMapDisplay = nullptr;
   checkboxLimitSuperweapons = nullptr;
+  checkboxAllowMixedAlliedGarrisons = nullptr;
   comboBoxStartingCash = nullptr;
 	if (windowMap)
 	{
@@ -886,6 +973,7 @@ void LanGameOptionsMenuInit( WindowLayout *layout, void *userData )
 		buttonStart->winSetText(TheGameText->fetch("GUI:Accept"));
 		buttonSelectMap->winEnable( FALSE );
     checkboxLimitSuperweapons->winEnable( FALSE ); // Can look but only host can touch
+    checkboxAllowMixedAlliedGarrisons->winEnable( FALSE );
     comboBoxStartingCash->winEnable( FALSE );      // Ditto
 		TheLAN->GetMyGame()->setMapCRC( TheLAN->GetMyGame()->getMapCRC() );		// force a recheck
 		TheLAN->GetMyGame()->setMapSize( TheLAN->GetMyGame()->getMapSize() ); // of if we have the map
@@ -963,6 +1051,8 @@ void updateGameOptions()
 		GadgetStaticTextSetText(textEntryMapDisplay, mapDisplayName);
 
     GadgetCheckBoxSetChecked( checkboxLimitSuperweapons, theGame->getSuperweaponRestriction() != 0 );
+    GadgetCheckBoxSetChecked( checkboxAllowMixedAlliedGarrisons,
+      theGame->getAllowMixedAlliedGarrisons() );
 		Int itemCount = GadgetComboBoxGetLength(comboBoxStartingCash);
     Int index = 0;
     for ( ; index < itemCount; index++ )
@@ -1279,6 +1369,10 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
         {
           handleLimitSuperweaponsClick();
         }
+				else if ( controlID == checkboxAllowMixedAlliedGarrisonsID )
+				{
+					handleAllowMixedAlliedGarrisonsClick();
+				}
 				else
 				{
 					for (Int i = 0; i < MAX_SLOTS; i++)

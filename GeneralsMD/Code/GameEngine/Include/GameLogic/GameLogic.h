@@ -248,6 +248,7 @@ public:
 
   UnsignedShort getSuperweaponRestriction() const; ///< Get any optional limits on superweapons
   void setSuperweaponRestriction();
+  Bool getAllowMixedAlliedGarrisons() const;
 
 #ifdef DUMP_PERF_STATS
 	void getAIMetricsStatistics( UnsignedInt *numAI, UnsignedInt *numMoving, UnsignedInt *numAttacking, UnsignedInt *numWaitingForPath, UnsignedInt *overallFailedPathfinds );
@@ -448,6 +449,7 @@ private:
 	GameMode m_gameMode;
 	Int m_rankLevelLimit;
   UnsignedShort m_superweaponRestriction;
+  Bool m_allowMixedAlliedGarrisons;
 
 	LoadScreen *getLoadScreen( Bool loadSaveGame );
 	LoadScreen *m_loadScreen;
@@ -508,6 +510,7 @@ inline Bool GameLogic::isInReplayGame() { return (m_gameMode == GAME_REPLAY); }
 inline Bool GameLogic::isInInternetGame() { return (m_gameMode == GAME_INTERNET); }
 inline Bool GameLogic::isInShellGame() { return (m_gameMode == GAME_SHELL); }
 inline UnsignedShort GameLogic::getSuperweaponRestriction() const { return m_superweaponRestriction; }
+inline Bool GameLogic::getAllowMixedAlliedGarrisons() const { return m_allowMixedAlliedGarrisons; }
 
 inline Object* GameLogic::findObjectByID( ObjectID id )
 {
