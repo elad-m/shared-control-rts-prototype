@@ -87,6 +87,37 @@
 
 #include "shdlib.h"
 
+#include <cstring>
+
+namespace
+{
+	// TheSuperHackers @compat Prefer a d3d8.dll sitting next to our executable (for example a
+	// renderer-only d3d8to9 wrapper) over the system one, so a custom build can ship its own
+	// Direct3D 8 translation layer without relying on the retail executable's load order.
+	HMODULE LoadD3D8Library()
+	{
+		char executablePath[MAX_PATH] = {};
+		const DWORD pathLength = GetModuleFileNameA(nullptr, executablePath, MAX_PATH);
+		if (pathLength > 0 && pathLength < MAX_PATH)
+		{
+			char *separator = std::strrchr(executablePath, '\\');
+			if (separator != nullptr)
+			{
+				const char libraryName[] = "d3d8.dll";
+				const size_t directoryLength = static_cast<size_t>(separator - executablePath + 1);
+				if (directoryLength + sizeof(libraryName) <= MAX_PATH)
+				{
+					std::memcpy(executablePath + directoryLength, libraryName, sizeof(libraryName));
+					if (HMODULE adjacentLibrary = LoadLibraryA(executablePath))
+						return adjacentLibrary;
+				}
+			}
+		}
+
+		return LoadLibraryA("D3D8.DLL");
+	}
+}
+
 const int DEFAULT_RESOLUTION_WIDTH = 640;
 const int DEFAULT_RESOLUTION_HEIGHT = 480;
 const int DEFAULT_BIT_DEPTH = 32;
@@ -292,7 +323,7 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
-		D3D8Lib = LoadLibrary("D3D8.DLL");
+		D3D8Lib = LoadD3D8Library();
 
 		if (D3D8Lib == nullptr) return false;	// Return false at this point if init failed
 
