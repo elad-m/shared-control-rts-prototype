@@ -13,6 +13,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$launchLogPath = Join-Path $PSScriptRoot 'launch-last.log'
+Start-Transcript -LiteralPath $launchLogPath -Force | Out-Null
 
 if ([string]::IsNullOrWhiteSpace($GameDirectory)) {
     $registryPaths = @(
@@ -37,6 +39,11 @@ if ([string]::IsNullOrWhiteSpace($GameDirectory)) {
 }
 
 $GameDirectory = [System.IO.Path]::GetFullPath($GameDirectory).TrimEnd('\')
+$nestedEaGameDirectory = Join-Path $GameDirectory 'Command and Conquer Generals Zero Hour'
+if (-not (Test-Path -LiteralPath (Join-Path $GameDirectory 'Data\Scripts\SkirmishScripts.scb')) -and
+        (Test-Path -LiteralPath (Join-Path $nestedEaGameDirectory 'Data\Scripts\SkirmishScripts.scb'))) {
+    $GameDirectory = $nestedEaGameDirectory
+}
 $executablePath = Join-Path $PSScriptRoot 'generalszh.exe'
 $officialDataDirectory = Join-Path $GameDirectory 'Data'
 $dataLinkPath = Join-Path $PSScriptRoot 'Data'
