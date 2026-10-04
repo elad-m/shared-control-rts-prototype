@@ -41,6 +41,9 @@ Enemy units remain viewable but cannot be commanded. Production ordered through
 an allied building is paid for by that building's owner, and the completed unit
 belongs to that owner.
 
+To play the ShockWave mod on this build, follow [SHOCKWAVE.md](SHOCKWAVE.md).
+That setup is experimental.
+
 ## Requirements
 
 - Windows 8.1 or newer;

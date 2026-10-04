@@ -4,7 +4,10 @@ param(
     [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9._-]*$')]
     [string]$Version,
     [string]$ExecutablePath,
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    # Optional Direct3D 8 wrapper (d3d8to9) to ship beside the executable, with its licence text.
+    [string]$Direct3DWrapperPath,
+    [string]$Direct3DWrapperLicensePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,10 +24,19 @@ $requiredFiles = @(
     $ExecutablePath,
     (Join-Path $PSScriptRoot 'run-zero-hour-lan-client.ps1'),
     (Join-Path $PSScriptRoot 'launch-shared-control.cmd'),
+    (Join-Path $PSScriptRoot 'launch-shockwave-shared-control.cmd'),
+    (Join-Path $PSScriptRoot 'verify-shockwave-setup.ps1'),
     (Join-Path $repositoryRoot 'SHARED_CONTROL.md'),
+    (Join-Path $repositoryRoot 'SHOCKWAVE.md'),
     (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md'),
     (Join-Path $repositoryRoot 'LICENSE.md')
 )
+if (-not [string]::IsNullOrWhiteSpace($Direct3DWrapperPath)) {
+    if ([string]::IsNullOrWhiteSpace($Direct3DWrapperLicensePath)) {
+        throw 'A Direct3D wrapper must be shipped with its licence text: pass -Direct3DWrapperLicensePath.'
+    }
+    $requiredFiles += $Direct3DWrapperPath, $Direct3DWrapperLicensePath
+}
 foreach ($requiredFile in $requiredFiles) {
     if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
         throw "Required release file was not found: $requiredFile"
@@ -49,9 +61,16 @@ New-Item -ItemType Directory -Path $stagingDirectory | Out-Null
 Copy-Item -LiteralPath $ExecutablePath -Destination (Join-Path $stagingDirectory 'generalszh.exe')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run-zero-hour-lan-client.ps1') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-shared-control.cmd') -Destination (Join-Path $stagingDirectory 'Launch Shared Control.cmd')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-shockwave-shared-control.cmd') -Destination (Join-Path $stagingDirectory 'Launch ShockWave Shared Control.cmd')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'verify-shockwave-setup.ps1') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'SHARED_CONTROL.md') -Destination (Join-Path $stagingDirectory 'README.md')
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'SHOCKWAVE.md') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE.md') -Destination $stagingDirectory
+if (-not [string]::IsNullOrWhiteSpace($Direct3DWrapperPath)) {
+    Copy-Item -LiteralPath $Direct3DWrapperPath -Destination (Join-Path $stagingDirectory 'd3d8.dll')
+    Copy-Item -LiteralPath $Direct3DWrapperLicensePath -Destination (Join-Path $stagingDirectory 'd3d8to9-LICENSE.md')
+}
 
 $executableHash = (Get-FileHash -LiteralPath (Join-Path $stagingDirectory 'generalszh.exe') -Algorithm SHA256).Hash
 Set-Content `
