@@ -3172,6 +3172,28 @@ Bool AudioFileCache::freeEnoughSpaceForSample(const OpenAudioFile& sampleThatNee
 	}
 
 	std::list<AsciiString>::iterator ait;
+
+	// TheSuperHackers @bugfix Stop the sounds that still play an evicted file before touching the
+	// cache, and do it without holding the cache mutex. Stopping a Miles sample waits for the Miles
+	// thread, and that thread takes this same mutex from its end-of-sample callback
+	// (notifyOfAudioCompletion -> startNextLoop -> closeFile). Holding the mutex across the stop
+	// made the two threads wait on each other forever. The caller, openFile, holds the mutex once.
+	std::list<const void *> filesInUse;
+	for (ait = filesToClose.begin(); ait != filesToClose.end(); ++ait) {
+		OpenFilesHashIt itInUse = m_openFiles.find(*ait);
+		if (itInUse != m_openFiles.end() && itInUse->second.m_openCount > 0) {
+			filesInUse.push_back(itInUse->second.m_file);
+		}
+	}
+	if (!filesInUse.empty()) {
+		ReleaseMutex(m_mutex);
+		for (std::list<const void *>::iterator fit = filesInUse.begin(); fit != filesInUse.end(); ++fit) {
+			TheAudio->closeAnySamplesUsingFile(*fit);
+		}
+		WaitForSingleObject(m_mutex, INFINITE);
+	}
+
+	// The cache may have changed while the mutex was released, so look every file up again.
 	for (ait = filesToClose.begin(); ait != filesToClose.end(); ++ait) {
 		OpenFilesHashIt itToErase = m_openFiles.find(*ait);
 		if (itToErase != m_openFiles.end()) {
