@@ -1187,7 +1187,12 @@ void WeaponTemplate::processHistoricDamage(const Object* source, const Coord3D* 
 
 		if( count >= m_historicBonusCount - 1 )	// minus 1 since we include ourselves implicitly
 		{
-		  TheWeaponStore->createAndFireTempWeapon(m_historicBonusWeapon, source, pos);
+			// TheSuperHackers @bugfix Skip the bonus weapon when the firer died before its shot
+			// landed. dealDamageInternal looks the source up by id and may legitimately get null,
+			// and createAndFireTempWeapon dereferences it. The history is still consumed below so
+			// that everything else behaves exactly as before.
+			if (source != nullptr)
+				TheWeaponStore->createAndFireTempWeapon(m_historicBonusWeapon, source, pos);
 
 			/** @todo E3 hack! Clear the list for now to make sure we don't have multiple firestorms
 				* remove this when the branches merge back into one.  What is causing the
@@ -1230,7 +1235,10 @@ void WeaponTemplate::processHistoricDamage(const Object* source, const Coord3D* 
 
 					if (++count == requiredCount)
 					{
-						TheWeaponStore->createAndFireTempWeapon(m_historicBonusWeapon, source, pos);
+						// TheSuperHackers @bugfix See the matching guard above: the firer may have
+						// died before its shot landed, leaving source null.
+						if (source != nullptr)
+							TheWeaponStore->createAndFireTempWeapon(m_historicBonusWeapon, source, pos);
 						trimTriggeredHistoricDamage();
 						return;
 					}
