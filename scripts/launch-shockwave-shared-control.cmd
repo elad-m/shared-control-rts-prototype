@@ -22,7 +22,9 @@ if not "%MOD_DIR%"=="%MOD_DIR: =%" (
     exit /b 1
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '%~dp0run-zero-hour-lan-client.ps1' -SharedControl -AdditionalArguments '-mod','%MOD_DIR%'"
+rem ShockWave ships its own AI and multiplayer scripts. The base game's loose copies in
+rem Data\Scripts would be used instead, which leaves the three new generals without AI.
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& '%~dp0run-zero-hour-lan-client.ps1' -SharedControl -HideLooseDataFolders 'Scripts' -AdditionalArguments '-mod','%MOD_DIR%'"
 if errorlevel 1 (
     echo.
     echo ShockWave shared-control launch failed. Review the error above.

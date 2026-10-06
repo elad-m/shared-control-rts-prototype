@@ -9,7 +9,11 @@ param(
     [int]$MaxCameraHeight = 450,
     [switch]$UseCleanDataProjection,
     [switch]$SharedControl,
-    [string[]]$AdditionalArguments = @()
+    [string[]]$AdditionalArguments = @(),
+    # Official Data child folders to keep out of sight, so a mod's archive copies are used.
+    [string[]]$HideLooseDataFolders = @(),
+    # Set up the Data layout and stop before starting the game.
+    [switch]$PrepareOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -189,21 +193,66 @@ if ($UseCleanDataProjection) {
     $workingDirectory = $PSScriptRoot
 }
 else {
-    if (Test-Path -LiteralPath $dataLinkPath) {
-        $dataEntry = Get-Item -LiteralPath $dataLinkPath -Force
-        $actualTarget = @($dataEntry.Target)[0]
-        if ($dataEntry.LinkType -ne 'Junction' -or [string]::IsNullOrWhiteSpace($actualTarget)) {
-            throw "The test-client Data path already exists and is not a junction: $dataLinkPath"
-        }
+    # Two layouts for the Data path beside the executable:
+    #   plain   - one junction to the official Data folder (the default);
+    #   partial - a real folder holding one junction per official child folder, minus the
+    #             ones named in -HideLooseDataFolders.
+    # The engine opens loose files before archive files. A mod that ships its own copy of a
+    # loose base-game file (ShockWave ships Data\Scripts) is ignored unless the loose copy is
+    # hidden. Nothing in the official installation is changed either way.
+    $hiddenFolders = @($HideLooseDataFolders | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
-        $actualTarget = [System.IO.Path]::GetFullPath($actualTarget).TrimEnd('\')
-        if (-not $actualTarget.Equals($expectedTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
-            throw "The test-client Data junction targets '$actualTarget', not '$expectedTarget'."
+    function Get-JunctionTarget([string]$Path) {
+        $entry = Get-Item -LiteralPath $Path -Force
+        $target = @($entry.Target)[0]
+        if ($entry.LinkType -ne 'Junction' -or [string]::IsNullOrWhiteSpace($target)) { return $null }
+        return [System.IO.Path]::GetFullPath($target).TrimEnd('\')
+    }
+
+    # Deletes the link only. A non-recursive delete cannot remove a real folder with content.
+    function Remove-Junction([string]$Path) {
+        if ($null -eq (Get-JunctionTarget $Path)) { throw "Refusing to remove a path that is not a junction: $Path" }
+        [System.IO.Directory]::Delete($Path, $false)
+    }
+
+    if (Test-Path -LiteralPath $dataLinkPath) {
+        $plainTarget = Get-JunctionTarget $dataLinkPath
+        if ($null -ne $plainTarget) {
+            if (-not $plainTarget.Equals($expectedTarget, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "The test-client Data junction targets '$plainTarget', not '$expectedTarget'."
+            }
+            if ($hiddenFolders.Count -gt 0) { Remove-Junction $dataLinkPath }
+        }
+        else {
+            # A partial layout from an earlier launch: take it apart, then rebuild what is wanted.
+            foreach ($child in Get-ChildItem -LiteralPath $dataLinkPath -Force) {
+                if ($null -eq (Get-JunctionTarget $child.FullName)) {
+                    throw "The test-client Data folder holds something that is not a junction: $($child.FullName)"
+                }
+                Remove-Junction $child.FullName
+            }
+            [System.IO.Directory]::Delete($dataLinkPath, $false)
+        }
+    }
+
+    if ($hiddenFolders.Count -eq 0) {
+        if (-not (Test-Path -LiteralPath $dataLinkPath)) {
+            New-Item -ItemType Junction -Path $dataLinkPath -Target $officialDataDirectory | Out-Null
         }
     }
     else {
-        New-Item -ItemType Junction -Path $dataLinkPath -Target $officialDataDirectory | Out-Null
+        New-Item -ItemType Directory -Path $dataLinkPath | Out-Null
+        foreach ($child in Get-ChildItem -LiteralPath $officialDataDirectory -Directory -Force) {
+            if ($hiddenFolders -contains $child.Name) { continue }
+            New-Item -ItemType Junction -Path (Join-Path $dataLinkPath $child.Name) -Target $child.FullName | Out-Null
+        }
     }
+}
+
+if ($PrepareOnly) {
+    Write-Host "Prepared the Data layout beside $executablePath without starting the game."
+    if (@($HideLooseDataFolders).Count -gt 0) { Write-Host "Hidden loose folders: $($HideLooseDataFolders -join ', ')" }
+    return
 }
 
 $gameArguments = @(

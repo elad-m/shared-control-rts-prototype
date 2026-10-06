@@ -18,7 +18,7 @@ completed on this build. Expect rough edges.
 - The ShockWave 1.201 mod, downloaded by you. This repository does not contain
   or distribute ShockWave files.
 - The release zip from this repository's Releases page:
-  `shared-control-rts-shockwave-test-1.zip`.
+  `shared-control-rts-shockwave-test-2.zip`.
 - Radmin VPN, on the same Radmin network as the other players.
 
 Every player must use the exact same release zip. A different build ends the
@@ -33,7 +33,7 @@ confirms the installation works and creates the settings file.
 
 ### 2. Extract the release
 
-Extract `shared-control-rts-shockwave-test-1.zip` into a new, empty folder that
+Extract `shared-control-rts-shockwave-test-2.zip` into a new, empty folder that
 is **not** inside the game folder. Example: `C:\Games\SharedControlShockwave`.
 
 ### 3. Get ShockWave 1.201 and place its files
@@ -125,6 +125,7 @@ a public network.
 |---|---|---|
 | Plain Zero Hour starts, no ShockWave | Mod path has a space, or the folder is wrong | Use `C:\ShockwaveModBig`; rerun the setup check |
 | ShockWave content appears without the mod switch | ShockWave files are inside the game folder | Move them out; rerun the setup check |
+| AI players using the Armor, Special Weapons or Salvage general do nothing | The game read the base game's AI scripts instead of ShockWave's | Start through `Launch ShockWave Shared Control.cmd` from release test-2 or later. It hides the base game's loose `Data\Scripts` from this build so ShockWave's scripts are used |
 | No mouse cursor in the game | The exe was started directly | Always start through the `.cmd` launcher. It creates a `Data` link next to the exe that the game needs |
 | Game closes at once, before the menu | An overlay `d3d8.dll` (for example GenTool) conflicts with this build | Keep the `d3d8.dll` from the release zip next to `generalszh.exe` |
 | Players do not see each other in the lobby | Wrong address in `Options.ini`, or firewall | Redo step 5; allow the game through the firewall on both network types |
