@@ -315,7 +315,7 @@ void GameInfo::reset()
 	m_mapCRC = 0;
 	m_mapSize = 0;
   m_superweaponRestriction = 0;
-  m_allowMixedAlliedGarrisons = FALSE;
+  m_allowMixedAlliedGarrisons = TRUE; // New games start with it allowed; the host can still turn it off.
   m_startingCash = TheGlobalData->m_defaultStartingCash;
 
 	for (Int i=0; i<MAX_SLOTS; ++i)

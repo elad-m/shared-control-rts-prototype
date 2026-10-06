@@ -24,10 +24,10 @@ With shared control enabled, allied human players can:
 Players can transfer $500, $1,000, or $5,000 from their own wallet to an
 active ally through the Diplomacy screen.
 
-The host can optionally enable **Allow Mixed Allied Garrisons** before a
+The host can turn **Allow Mixed Allied Garrisons** on or off before a
 match. When enabled, allied infantry can share transports and garrisoned
 buildings, mixed occupants remain inside and can fire normally, and a
-higher-ranked allied pilot can promote a vehicle. The option is disabled by
+higher-ranked allied pilot can promote a vehicle. The option is enabled by
 default and the normal ownership restrictions remain in force when it is off.
 
 Allied satellite scans and Strategy Center intelligence reveal their results
