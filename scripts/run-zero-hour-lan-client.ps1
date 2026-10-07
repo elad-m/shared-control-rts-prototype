@@ -1,10 +1,12 @@
 [CmdletBinding()]
 param(
     [string]$GameDirectory,
-    [ValidateRange(640, 7680)]
-    [int]$Width = 1280,
-    [ValidateRange(480, 4320)]
-    [int]$Height = 720,
+    # Window size. Leave both at 0 to use the resolution saved in the game's Options, as long
+    # as the screen can show it. Pass both to force a size for this launch.
+    [ValidateScript({ $_ -eq 0 -or ($_ -ge 640 -and $_ -le 7680) })]
+    [int]$Width = 0,
+    [ValidateScript({ $_ -eq 0 -or ($_ -ge 480 -and $_ -le 4320) })]
+    [int]$Height = 0,
     [ValidateRange(100, 1000)]
     [int]$MaxCameraHeight = 450,
     [switch]$UseCleanDataProjection,
@@ -249,18 +251,63 @@ else {
     }
 }
 
+# Window size. The game saves the resolution chosen in its Options menu, but a size given on
+# the command line overrides it. So pass a size only when one is forced, or when the saved one
+# does not fit this screen; the saved setting itself is never rewritten.
+function Get-ScreenPixelSize {
+    Add-Type -AssemblyName System.Windows.Forms
+    if (-not ('ZeroHourLauncher.Dpi' -as [type])) {
+        Add-Type -Namespace ZeroHourLauncher -Name Dpi -MemberDefinition '[DllImport("user32.dll")] public static extern bool SetProcessDPIAware();'
+    }
+    # The game is DPI-aware and works in real pixels, so measure the screen the same way.
+    [ZeroHourLauncher.Dpi]::SetProcessDPIAware() | Out-Null
+    $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    return @($bounds.Width, $bounds.Height)
+}
+
+function Get-SavedResolution {
+    $optionsPath = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'Command and Conquer Generals Zero Hour Data\Options.ini'
+    if (-not (Test-Path -LiteralPath $optionsPath)) { return $null }
+    $match = Select-String -LiteralPath $optionsPath -Pattern '^\s*Resolution\s*=\s*(\d+)\s+(\d+)\s*$' | Select-Object -Last 1
+    if (-not $match) { return $null }
+    return @([int]$match.Matches[0].Groups[1].Value, [int]$match.Matches[0].Groups[2].Value)
+}
+
+# Decides the size arguments for one launch. $Saved and $Screen are @(width, height); $Saved
+# may be $null. Returns @{ Arguments = ...; Note = ... }.
+function Select-Resolution([int]$ForcedWidth, [int]$ForcedHeight, $Saved, $Screen) {
+    if ($ForcedWidth -gt 0 -and $ForcedHeight -gt 0) {
+        return @{ Arguments = @('-xres', $ForcedWidth, '-yres', $ForcedHeight); Note = "forced to ${ForcedWidth}x${ForcedHeight}" }
+    }
+    if ($ForcedWidth -gt 0 -or $ForcedHeight -gt 0) {
+        throw 'Pass both -Width and -Height, or neither.'
+    }
+    if ($Saved -and $Saved[0] -le $Screen[0] -and $Saved[1] -le $Screen[1]) {
+        return @{ Arguments = @(); Note = "saved $($Saved[0])x$($Saved[1]) (fits the $($Screen[0])x$($Screen[1]) screen)" }
+    }
+
+    # For this launch only: the largest common size the screen can show, or 1280x720 first
+    # when nothing has been saved yet.
+    $candidates = @(@(1920, 1080), @(1600, 900), @(1366, 768), @(1280, 720), @(1024, 768), @(800, 600))
+    if (-not $Saved) { $candidates = @(, @(1280, 720)) + $candidates }
+    $fallback = $candidates | Where-Object { $_[0] -le $Screen[0] -and $_[1] -le $Screen[1] } | Select-Object -First 1
+    if (-not $fallback) { $fallback = @(800, 600) }
+    $reason = if ($Saved) { "saved $($Saved[0])x$($Saved[1]) does not fit the $($Screen[0])x$($Screen[1]) screen" } else { 'no saved resolution' }
+    return @{ Arguments = @('-xres', $fallback[0], '-yres', $fallback[1]); Note = "$($fallback[0])x$($fallback[1]) for this launch ($reason)" }
+}
+
+$resolution = Select-Resolution $Width $Height (Get-SavedResolution) (Get-ScreenPixelSize)
+$resolutionArguments = $resolution.Arguments
+$resolutionNote = $resolution.Note
+
 if ($PrepareOnly) {
     Write-Host "Prepared the Data layout beside $executablePath without starting the game."
+    Write-Host "Resolution: $resolutionNote"
     if (@($HideLooseDataFolders).Count -gt 0) { Write-Host "Hidden loose folders: $($HideLooseDataFolders -join ', ')" }
     return
 }
 
-$gameArguments = @(
-    '-win',
-    '-xres', $Width,
-    '-yres', $Height,
-    '-maxCameraHeight', $MaxCameraHeight
-)
+$gameArguments = @('-win') + $resolutionArguments + @('-maxCameraHeight', $MaxCameraHeight)
 
 if ($SharedControl) {
     $gameArguments += '-sharedControl'
@@ -287,3 +334,4 @@ Write-Host "Started Zero Hour LAN test client (PID $($process.Id))."
 Write-Host "Executable: $executablePath"
 Write-Host "Game data:  $expectedTarget"
 Write-Host "Working dir: $workingDirectory"
+Write-Host "Resolution:  $resolutionNote"
