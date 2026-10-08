@@ -18,7 +18,7 @@ completed on this build. Expect rough edges.
 - The ShockWave 1.201 mod, downloaded by you. This repository does not contain
   or distribute ShockWave files.
 - The release zip from this repository's Releases page:
-  `shared-control-rts-shockwave-0.2.0.zip`.
+  `shared-control-rts-shockwave-0.3.0.zip`.
 - Radmin VPN, on the same Radmin network as the other players.
 
 Every player must use the exact same release zip. A different build ends the
@@ -33,7 +33,7 @@ confirms the installation works and creates the settings file.
 
 ### 2. Extract the release
 
-Extract `shared-control-rts-shockwave-0.2.0.zip` into a new, empty folder that
+Extract `shared-control-rts-shockwave-0.3.0.zip` into a new, empty folder that
 is **not** inside the game folder. Example: `C:\Games\SharedControlShockwave`.
 
 ### 3. Get ShockWave 1.201 and place its files
