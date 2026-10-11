@@ -63,6 +63,7 @@
 #include "GameClient/GameWindowID.h"
 #include "GameClient/GUICallbacks.h"
 #include "GameClient/InGameUI.h"
+#include "GameClient/Keyboard.h"
 #include "GameClient/VideoPlayer.h"
 #include "GameClient/Mouse.h"
 #include "GameClient/GadgetStaticText.h"
@@ -2944,6 +2945,9 @@ void InGameUI::createCommandHint( const GameMessage *msg )
 							setMouseCursor( Mouse::SELECTING );
 						else if( TheRadar->isRadarWindow( window ) && !rts::localPlayerHasRadar() )
 							setMouseCursor( Mouse::ARROW );
+						// TheSuperHackers @feature Reverse move: same key test as the order itself in CommandXlat.
+						else if( TheKeyboard && TheKeyboard->isKeyDown( KEY_Z ) )
+							setMouseCursor( Mouse::REVERSE_MOVETO );
 						else
 							setMouseCursor( Mouse::MOVETO );
 						break;

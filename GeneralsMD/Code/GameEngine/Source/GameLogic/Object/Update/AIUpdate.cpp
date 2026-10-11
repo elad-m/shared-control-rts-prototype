@@ -272,6 +272,7 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_isApproachPath = FALSE;
 	m_isSafePath = FALSE;
 	m_movementComplete = FALSE;
+	m_reverseMoveRequested = FALSE;
 	m_isMoving = FALSE;
 	m_isBlocked = FALSE;
 	m_isBlockedAndStuck = FALSE;

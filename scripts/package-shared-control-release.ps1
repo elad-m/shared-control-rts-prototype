@@ -28,6 +28,7 @@ $requiredFiles = @(
     (Join-Path $PSScriptRoot 'verify-shockwave-setup.ps1'),
     (Join-Path $repositoryRoot 'SHARED_CONTROL.md'),
     (Join-Path $repositoryRoot 'SHOCKWAVE.md'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani'),
     (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md'),
     (Join-Path $repositoryRoot 'LICENSE.md')
 )
@@ -67,6 +68,9 @@ Copy-Item -LiteralPath (Join-Path $repositoryRoot 'SHARED_CONTROL.md') -Destinat
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'SHOCKWAVE.md') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE.md') -Destination $stagingDirectory
+# Cursors that are part of this build, not of the game data. The game looks for them beside the executable.
+New-Item -ItemType Directory -Path (Join-Path $stagingDirectory 'Cursors') | Out-Null
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani') -Destination (Join-Path $stagingDirectory 'Cursors')
 if (-not [string]::IsNullOrWhiteSpace($Direct3DWrapperPath)) {
     Copy-Item -LiteralPath $Direct3DWrapperPath -Destination (Join-Path $stagingDirectory 'd3d8.dll')
     Copy-Item -LiteralPath $Direct3DWrapperLicensePath -Destination (Join-Path $stagingDirectory 'd3d8to9-LICENSE.md')

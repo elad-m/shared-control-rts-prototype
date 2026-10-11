@@ -532,6 +532,22 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 			onDoForcemoveto(msg, currentlySelectedGroup);
 			break;
 		}
+#if RTS_ZEROHOUR
+		// TheSuperHackers @feature Reverse move: an ordinary move that treaded and wheeled vehicles drive backwards.
+		case GameMessage::MSG_DO_REVERSE_MOVETO:
+		{
+			if (currentlySelectedGroup)
+			{
+				Coord3D dest = msg->getArgument( 0 )->location;
+				currentlySelectedGroup->releaseWeaponLockForGroup(LOCKED_TEMPORARILY);	// release any temporary locks.
+				currentlySelectedGroup->setReverseMoveRequestedForGroup(TRUE);
+				currentlySelectedGroup->groupMoveToPosition( &dest, false, CMD_FROM_PLAYER );
+				// Drop the request on any member that did not start moving.
+				currentlySelectedGroup->setReverseMoveRequestedForGroup(FALSE);
+			}
+			break;
+		}
+#endif
 		// MSG_DO_SALVAGE is intentionally set up to mimic the moveto.
 		case GameMessage::MSG_DO_SALVAGE:
 		case GameMessage::MSG_DO_MOVETO:

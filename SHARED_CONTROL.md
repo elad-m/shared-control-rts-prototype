@@ -21,6 +21,10 @@ With shared control enabled, allied human players can:
 - see and use allied General Powers and superweapon shortcuts, separated and
   outlined with their owner's color.
 
+Hold **Z** while giving a move order to make tracked and wheeled vehicles drive
+there in reverse. The cursor changes to two arrows in a line while Z is held.
+This works with or without shared control.
+
 Players can transfer $500, $1,000, or $5,000 from their own wallet to an
 active ally through the Diplomacy screen.
 

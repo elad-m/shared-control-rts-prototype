@@ -1617,8 +1617,10 @@ StateReturnType AIInternalMoveToState::onEnter()
 		return STATE_FAILURE;
 	}
 
+	// Always take the request, so it cannot linger and reverse some later move.
+	const Bool reverseOrdered = ai->takeReverseMoveRequest();
 	if (ai->getCurLocomotor()) {
-		ai->getCurLocomotor()->startMove();
+		ai->getCurLocomotor()->startMove(reverseOrdered);
 		if (ai->getCurLocomotor()->isUltraAccurate())
 		{
 			setAdjustsDestination(false); // if we're being ultra accurate, we can't adjust the destination. jba.

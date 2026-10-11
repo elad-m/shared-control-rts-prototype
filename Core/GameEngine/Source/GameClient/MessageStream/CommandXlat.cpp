@@ -53,6 +53,7 @@
 #include "Common/GameLOD.h"
 
 #include "GameClient/InGameUI.h"
+#include "GameClient/Keyboard.h"
 #include "GameClient/CommandXlat.h"
 #include "GameClient/DebugDisplay.h"
 #include "GameClient/Drawable.h"
@@ -1035,6 +1036,12 @@ GameMessage::Type CommandTranslator::issueMoveToLocationCommand( const Coord3D *
 		else if( TheInGameUI->isInForceAttackMode() && isForceAttackable )
 		{
 			msgType = GameMessage::MSG_DO_ATTACK_OBJECT;
+		}
+		// TheSuperHackers @feature Reverse move: hold Z while giving the move click. Z is the one
+		// letter that is neither a global key nor a hotkey on any combat unit's command bar.
+		else if( TheKeyboard && TheKeyboard->isKeyDown( KEY_Z ) )
+		{
+			msgType = GameMessage::MSG_DO_REVERSE_MOVETO;
 		}
 		else
 		{
