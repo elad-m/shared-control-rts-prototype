@@ -7,6 +7,29 @@ participating client launches with `-sharedControl`. Version 0.3.0 is
 LAN-tested and adds allied funds transfers plus an optional mixed-allied-
 garrison rule; Internet play is not yet fully verified.
 
+## Shared-control project by Elad Musba
+
+This shared-control prototype is a personal project by
+[Elad Musba](https://github.com/elad-m), developed with AI coding tools.
+My role focuses on defining gameplay behavior, directing implementation,
+and manually testing the resulting changes in the game.
+
+The shared-control additions include:
+
+- selecting and commanding allied units and buildings, including mixed-army
+  selections;
+- using allied production, upgrades, and special powers while preserving
+  each object's original owner and owner-specific spending;
+- transferring funds between allies; and
+- allowing mixed allied transports and building garrisons through a lobby rule.
+
+These additions build on the original Electronic Arts engine source and the
+[GeneralsGameCode community project](https://github.com/TheSuperHackers/GeneralsGameCode).
+The underlying game engine and upstream improvements are the work of their
+original authors and contributors. See [MODIFICATION_NOTICE.md](MODIFICATION_NOTICE.md)
+for the modification scope and [SHARED_CONTROL.md](SHARED_CONTROL.md) for
+features, testing status, and limitations.
+
 This is a modified version of the GPL-covered engine source. It is not an
 original Electronic Arts release, is not endorsed or supported by Electronic
 Arts, and provides no retail game data. Players must supply their own
