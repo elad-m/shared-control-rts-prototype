@@ -18,7 +18,7 @@ completed on this build. Expect rough edges.
 - The ShockWave 1.201 mod, downloaded by you. This repository does not contain
   or distribute ShockWave files.
 - The release zip from this repository's Releases page:
-  `shared-control-rts-shockwave-0.4.0.zip`.
+  `shared-control-rts-shockwave-0.4.1.zip`.
 - Radmin VPN, on the same Radmin network as the other players.
 
 Every player must use the exact same release zip. A different build ends the
@@ -33,7 +33,7 @@ confirms the installation works and creates the settings file.
 
 ### 2. Extract the release
 
-Extract `shared-control-rts-shockwave-0.4.0.zip` into a new, empty folder that
+Extract `shared-control-rts-shockwave-0.4.1.zip` into a new, empty folder that
 is **not** inside the game folder. Example: `C:\Games\SharedControlShockwave`.
 
 ### 3. Get ShockWave 1.201 and place its files
@@ -105,7 +105,9 @@ If your mod folder is not `C:\ShockwaveModBig`, pass it as an argument:
 & '.\Launch ShockWave Shared Control.cmd' D:\ShockwaveModBig
 ```
 
-You have the right build when the window title mentions **ShockWave V1.201**.
+You have the right build when the window title starts with
+**Shared Control shockwave-0.4.1** and mentions **ShockWave V1.201**. Every
+player's title must show the same release.
 
 The first time the game opens the Network lobby, Windows Firewall asks for
 access. Tick both Private and Public, then allow. Radmin VPN usually counts as
