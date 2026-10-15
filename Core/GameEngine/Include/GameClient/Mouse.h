@@ -242,6 +242,7 @@ public:
 		PLACE_CHARGE_INVALID,
 		HACK,
 		PARTICLE_UPLINK_CANNON,
+		REVERSE_MOVETO,				// TheSuperHackers @feature shown while the reverse-move key is held
 
 
 		// ***** dont forget to update CursorININames[] *****

@@ -195,11 +195,38 @@ void LANAPI::OnGameStart()
 		pref["PlayerTemplate"] = option;
 		option.format("%d", m_currentGame->getLANSlot( m_currentGame->getLocalSlotNum() )->getColor());
 		pref["Color"] = option;
+
+		// TheSuperHackers @feature Remember the rest of the lobby layout too, so the next game
+		// does not have to be set up from scratch: this player's team and start position, and for
+		// the host the AI players and the mixed-garrison option.
+		option.format("%d", m_currentGame->getLANSlot( m_currentGame->getLocalSlotNum() )->getTeamNumber());
+		pref["Team"] = option;
+		option.format("%d", m_currentGame->getLANSlot( m_currentGame->getLocalSlotNum() )->getStartPos());
+		pref["StartPos"] = option;
+
 		if (m_currentGame->amIHost())
     {
     	pref["Map"] = AsciiStringToQuotedPrintable(m_currentGame->getMap());
       pref.setSuperweaponRestricted( m_currentGame->getSuperweaponRestriction() > 0 );
       pref.setStartingCash( m_currentGame->getStartingCash() );
+
+			pref["AllowMixedAlliedGarrisons"] = m_currentGame->getAllowMixedAlliedGarrisons() ? "yes" : "no";
+
+			// One "slot,state,template,color,team,startPos" entry per AI player, joined by '_'.
+			AsciiString aiSlots;
+			for (Int i = 0; i < MAX_SLOTS; ++i)
+			{
+				const LANGameSlot *aiSlot = m_currentGame->getLANSlot(i);
+				if (!aiSlot || !aiSlot->isAI())
+					continue;
+
+				option.format("%d,%d,%d,%d,%d,%d", i, (Int)aiSlot->getState(), aiSlot->getPlayerTemplate(),
+					aiSlot->getColor(), aiSlot->getTeamNumber(), aiSlot->getStartPos());
+				if (aiSlots.isNotEmpty())
+					aiSlots.concat('_');
+				aiSlots.concat(option);
+			}
+			pref["AISlots"] = aiSlots.isNotEmpty() ? aiSlots : AsciiString("none");
     }
 		pref.write();
 
@@ -515,6 +542,22 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 		RequestGameOptions(options, true);
 		options.format("Color=%d", pref.getPreferredColor());
 		RequestGameOptions(options, true);
+
+		// TheSuperHackers @feature Ask for the team and start position of the previous game too.
+		// The host refuses a start position that is taken.
+		LANPreferences::const_iterator previous = pref.find("Team");
+		if (previous != pref.end() && atoi(previous->second.str()) >= 0)
+		{
+			options.format("Team=%d", atoi(previous->second.str()));
+			RequestGameOptions(options, true);
+		}
+		previous = pref.find("StartPos");
+		if (previous != pref.end() && atoi(previous->second.str()) >= 0)
+		{
+			options.format("StartPos=%d", atoi(previous->second.str()));
+			RequestGameOptions(options, true);
+		}
+
 		options.format("User=%s", m_userName.str());
 		RequestGameOptions( options, true );
 		options.format("Host=%s", m_hostName.str());

@@ -112,6 +112,7 @@ public:
 	Bool isShift();
 	Bool isCtrl();
 	Bool isAlt();
+	Bool isKeyDown( KeyDefType key ) { return getKeyStateBit( key, KEY_STATE_DOWN ); }	///< TheSuperHackers @feature is this key held right now?
 	Int getModifierFlags() { return m_modifiers; }
 
 	// access methods for key data

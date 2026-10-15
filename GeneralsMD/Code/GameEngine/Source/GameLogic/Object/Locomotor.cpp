@@ -772,10 +772,14 @@ void Locomotor::loadPostProcess()
 }
 
 //-------------------------------------------------------------------------------------------------
-void Locomotor::startMove()
+void Locomotor::startMove(Bool reverseOrdered)
 {
 	// Reset the donut timer.
 	m_donutTimer = TheGameLogic->getFrame()+DONUT_TIME_DELAY_SECONDS*LOGICFRAMES_PER_SECOND;
+	// A normal move that follows an ordered reverse starts out forwards, even while still rolling.
+	if (getFlag(REVERSE_MOVE_ORDERED) && !reverseOrdered)
+		setFlag(MOVING_BACKWARDS, false);
+	setFlag(REVERSE_MOVE_ORDERED, reverseOrdered);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1174,8 +1178,20 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 //	Real angle = obj->getOrientation();
 //	Real relAngle = ThePartitionManager->getRelativeAngle2D( obj, &goalPos );
 //	Real desiredAngle = angle + relAngle;
+
+	// TheSuperHackers @feature Reverse move. When the player ordered this move to be driven
+	// backwards, keep the rear pointed at the goal by aiming the nose at the mirrored point.
+	const Bool moveBackwards = getFlag(REVERSE_MOVE_ORDERED);
+	setFlag(MOVING_BACKWARDS, moveBackwards);
+	Coord3D facePos = goalPos;
+	if (moveBackwards)
+	{
+		facePos.x = 2.0f * obj->getPosition()->x - goalPos.x;
+		facePos.y = 2.0f * obj->getPosition()->y - goalPos.y;
+	}
+
 	Real relAngle ;
-	PhysicsTurningType rotating = rotateTowardsPosition(obj, goalPos, &relAngle);
+	PhysicsTurningType rotating = rotateTowardsPosition(obj, facePos, &relAngle);
 	physics->setTurning(rotating);
 
 	//
@@ -1197,7 +1213,10 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 //	if (speed < m_minTurnSpeed)
 //		speed = m_minTurnSpeed;
 
+	// Speeds below are along the direction of travel, so a reversing vehicle reads as positive.
 	Real actualSpeed = physics->getForwardSpeed2D();
+	if (moveBackwards)
+		actualSpeed = -actualSpeed;
 	Real slowDownTime = actualSpeed / getBraking();
 	Real slowDownDist = (actualSpeed/1.50f) * slowDownTime;
 
@@ -1255,6 +1274,10 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 		Real maxForceNeeded = mass * speedDelta;
 		if (fabs(accelForce) > fabs(maxForceNeeded))
 			accelForce = maxForceNeeded;
+
+		// The force was worked out along the direction of travel; that is the rear when backing up.
+		if (moveBackwards)
+			accelForce = -accelForce;
 
 		const Coord3D *dir = obj->getUnitDirectionVector2D();
 
@@ -1326,6 +1349,19 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 		}
 	}
 #endif
+
+	// TheSuperHackers @feature Reverse move. When the player ordered this move to be driven
+	// backwards, do so for the whole move: at any angle to the goal, at any distance, and for
+	// vehicles that never back up on their own. The driving itself is the existing reverse code.
+	if (getFlag(REVERSE_MOVE_ORDERED))
+	{
+		setFlag(MOVING_BACKWARDS, true);
+		setFlag(DOING_THREE_POINT_TURN, false);
+		moveBackwards = true;
+		do3pointTurn = false;
+		desiredAngle = stdAngleDiff(atan2(goalPos.y - obj->getPosition()->y, goalPos.x - obj->getPosition()->x), PI);
+		relAngle = stdAngleDiff(desiredAngle, angle);
+	}
 
 	const Real SMALL_TURN = PI / 20.0f;
 	if ((Real)fabs( relAngle ) > SMALL_TURN)
@@ -2461,10 +2497,13 @@ Bool Locomotor::locoUpdate_maintainCurrentPosition(Object* obj)
 			break;
 		case LOCO_WHEELS_FOUR:
 		case LOCO_MOTORCYCLE:
+			if (getFlag(REVERSE_MOVE_ORDERED))
+				setFlag(MOVING_BACKWARDS, false);	// a vehicle that was ordered to back up here has arrived
 			maintainCurrentPositionWheels(obj, physics);
 			requiresConstantCalling = FALSE;
 			break;
 		case LOCO_TREADS:
+			setFlag(MOVING_BACKWARDS, false);	// a vehicle that backed up to this spot has arrived
 			maintainCurrentPositionTreads(obj, physics);
 			requiresConstantCalling = FALSE;
 			break;

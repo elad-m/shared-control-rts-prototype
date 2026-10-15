@@ -59,6 +59,9 @@
 #include "GameLogic/ScriptEngine.h"
 #include "GameLogic/Weapon.h"
 
+#include <cerrno>
+#include <cstdlib>
+
 #if __cplusplus >= 201611L
 #define USE_STD_FROM_CHARS_PARSING 1
 #else
@@ -1788,7 +1791,19 @@ void INI::parseDurationReal( INI *ini, void * /*instance*/, void *store, const v
 // parse a duration in msec and convert to duration in integral number of frames, (unsignedint) rounding UP
 void INI::parseDurationUnsignedInt( INI *ini, void * /*instance*/, void *store, const void* /*userData*/ )
 {
-	UnsignedInt val = scanUnsignedInt(ini->getNextToken());
+	const char *token = ini->getNextToken();
+	char *end = nullptr;
+	errno = 0;
+	const unsigned long parsed = std::strtoul(token, &end, 10);
+	if (end == token)
+		throw INI_INVALID_DATA;
+
+	// Match the retail parser's permissive integer-prefix behavior. Established
+	// mods rely on decimals such as "0.01", signed "-1" sentinel values, and
+	// oversized values that saturate to the unsigned maximum.
+	const UnsignedInt val = errno == ERANGE || parsed > UINT_MAX
+		? UINT_MAX
+		: static_cast<UnsignedInt>(parsed);
 	*(UnsignedInt *)store = (UnsignedInt)ceilf(ConvertDurationFromMsecsToFrames((Real)val));
 }
 

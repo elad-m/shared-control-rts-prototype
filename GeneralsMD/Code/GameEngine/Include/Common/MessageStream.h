@@ -577,6 +577,7 @@ public:
 		MSG_DO_MOVETO,															///< location
 		MSG_DO_ATTACKMOVETO,												///< location
 		MSG_DO_FORCEMOVETO,													///< location
+		MSG_DO_REVERSE_MOVETO,											///< location; treaded and wheeled vehicles back up to it
 		MSG_ADD_WAYPOINT,														///< location
 		MSG_DO_GUARD_POSITION,											///< Guard with the currently selected group
 		MSG_DO_GUARD_OBJECT,												///< Guard with the currently selected group

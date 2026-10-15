@@ -572,6 +572,15 @@ void Mouse::parseIni()
 {
 	INI ini;
 	ini.loadFileDirectory( "Data\\INI\\Mouse", INI_LOAD_OVERWRITE, nullptr );
+
+	// TheSuperHackers @feature The reverse-move cursor ships with this build, not with the game
+	// data, so define it here unless a Mouse.ini already does.
+	CursorInfo *reverseMove = &m_cursorInfo[REVERSE_MOVETO];
+	if (reverseMove->textureName.isEmpty())
+	{
+		reverseMove->cursorName = "ReverseMoveTo";
+		reverseMove->textureName = "SCCReverseMove";
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1321,6 +1330,7 @@ Int Mouse::getCursorIndex(const AsciiString& name)
 		"PlaceChargeInvalid",
 		"Hack",
 		"ParticleUplinkCannon",
+		"ReverseMoveTo",
 
 	};
 

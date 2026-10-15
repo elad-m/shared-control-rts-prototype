@@ -364,7 +364,9 @@ public:
 
 	Bool isMovingBackwards() const {return getFlag(MOVING_BACKWARDS);}
 
-	void startMove(); ///< Indicates that a move is starting, primarily to reset the donut timer. jba.
+	/// Indicates that a move is starting, primarily to reset the donut timer. jba.
+	/// TheSuperHackers @feature reverseOrdered: drive this move backwards (treaded and wheeled vehicles).
+	void startMove(Bool reverseOrdered = FALSE);
 
 protected:
 	void moveTowardsPositionLegs(Object* obj, PhysicsBehavior *physics, const Coord3D& goalPos, Real onPathDistToGoal, Real desiredSpeed);
@@ -434,7 +436,8 @@ private:
 		DOING_THREE_POINT_TURN,	// If we are doing a 3 pt turn.
 		CLIMBING,								// If we are in the process of climbing.
 		IS_CLOSE_ENOUGH_DIST_3D,
-		OFFSET_INCREASING
+		OFFSET_INCREASING,
+		REVERSE_MOVE_ORDERED		// The current move was ordered to be driven backwards.
 	};
 
 	Bool getFlag(LocoFlag f) const { return (m_flags & (1 << f)) != 0; }

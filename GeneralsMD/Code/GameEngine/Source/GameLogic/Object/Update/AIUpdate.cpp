@@ -186,8 +186,10 @@ const LocomotorTemplateVector* AIUpdateModuleData::findLocomotorTemplateVector(L
 		const LocomotorTemplate* lt = TheLocomotorStore->findLocomotorTemplate(locoKey);
 		if (!lt)
 		{
-			DEBUG_CRASH(("Locomotor %s not found!",token));
-			throw INI_INVALID_DATA;
+			// TheSuperHackers @compat Tolerate a mod referencing a locomotor that failed to
+			// load or was never defined, instead of aborting the whole engine init.
+			DEBUG_LOG(("Locomotor %s not found for object %s, skipping.", token, tt->getName().str()));
+			continue;
 		}
 		self->m_locomotorTemplates[set].push_back(lt);
 	}
@@ -270,6 +272,7 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_isApproachPath = FALSE;
 	m_isSafePath = FALSE;
 	m_movementComplete = FALSE;
+	m_reverseMoveRequested = FALSE;
 	m_isMoving = FALSE;
 	m_isBlocked = FALSE;
 	m_isBlockedAndStuck = FALSE;

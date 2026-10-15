@@ -355,8 +355,10 @@ ScienceType ScienceStore::friend_lookupScience(const char* scienceName) const
 	ScienceType st = (ScienceType)nkt;
 	if (!isValidScience(st))
 	{
-		DEBUG_CRASH(("Science name %s not known! (Did you define it in Science.ini?)",scienceName));
-		throw INI_INVALID_DATA;
+		// TheSuperHackers @compat Tolerate a mod referencing a science that failed to
+		// load or was never defined, instead of aborting the whole engine init.
+		DEBUG_LOG(("Science name %s not known! (Did you define it in Science.ini?) Treating as SCIENCE_INVALID.",scienceName));
+		return SCIENCE_INVALID;
 	}
 	return st;
 }

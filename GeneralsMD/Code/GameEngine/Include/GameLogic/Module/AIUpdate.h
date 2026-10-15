@@ -487,6 +487,11 @@ public:
 	// we often exit one move state & immediately enter another.  This should not cause a "stop start".
 	// jba.
 	void friend_startingMove();
+
+	// TheSuperHackers @feature Reverse move. Set just before a move order is issued and taken up
+	// by the move that order starts, so it never outlives the order.
+	void setReverseMoveRequested(Bool requested) { m_reverseMoveRequested = requested; }
+	Bool takeReverseMoveRequest() { const Bool requested = m_reverseMoveRequested; m_reverseMoveRequested = FALSE; return requested; }
 	void friend_endingMove();
 
 	void friend_setPath(Path *newPath);
@@ -786,6 +791,7 @@ private:
 	Bool				m_isApproachPath;						///< True if we are just approaching to tighten.
 	Bool				m_isSafePath;								///< True if we are just approaching to tighten.
 	Bool				m_movementComplete;					///< True if we finished an AIInternalMoveToState.
+	Bool				m_reverseMoveRequested;			///< Only set while a reverse-move order is being issued; not saved.
 	Bool				m_isMoving;									///< True if we are in an AIInternalMoveToState.
 	Bool				m_isBlocked;
 	Bool				m_isBlockedAndStuck;				///< True if we are stuck & need to recompute path.

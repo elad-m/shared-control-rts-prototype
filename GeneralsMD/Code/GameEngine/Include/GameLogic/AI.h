@@ -1011,6 +1011,7 @@ public:
 	void setMineClearingDetail( Bool set );
 	Bool setWeaponLockForGroup( WeaponSlotType weaponSlot, WeaponLockType lockType ); ///< Set the groups' weapon choice.
 	void releaseWeaponLockForGroup(WeaponLockType lockType);///< Clear each guys weapon choice
+	void setReverseMoveRequestedForGroup(Bool requested);		///< TheSuperHackers @feature Mark or clear a pending reverse-move order on every member
 	void setWeaponSetFlag( WeaponSetType wst );
 
 protected:

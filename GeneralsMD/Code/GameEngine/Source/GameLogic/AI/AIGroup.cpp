@@ -3094,6 +3094,17 @@ Bool AIGroup::setWeaponLockForGroup( WeaponSlotType weaponSlot, WeaponLockType l
 	return any;
 }
 
+void AIGroup::setReverseMoveRequestedForGroup(Bool requested)
+{
+	std::list<Object *>::iterator i;
+	for( i = m_memberList.begin(); i != m_memberList.end(); ++i )
+	{
+		AIUpdateInterface *ai = (*i)->getAIUpdateInterface();
+		if (ai)
+			ai->setReverseMoveRequested(requested);
+	}
+}
+
 void AIGroup::releaseWeaponLockForGroup(WeaponLockType lockType)
 {
 	std::list<Object *>::iterator i;

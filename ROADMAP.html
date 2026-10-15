@@ -62,6 +62,16 @@
     </section>
 
     <section>
+      <header><h2>ShockWave compatibility</h2><span class="status later">Planned investigation</span></header>
+      <div class="items">
+        <article><span class="status later">Spike</span><div><strong>Run shared control with ShockWave 1.201</strong><p>Install the public stable ShockWave release as a separate, user-supplied mod and test the current shared-control engine against its data. Do not redistribute ShockWave models, audio, INI files, or other assets without SWR Productions' permission.</p></div></article>
+        <article><span class="status later">Verify</span><div><strong>Compatibility and multiplayer baseline</strong><p>Check launcher/data-path assumptions, custom command sets and UI, all factions, skirmish AI, checksums, matching two-PC builds, Radmin play, and shared-control features before changing ShockWave gameplay.</p></div></article>
+        <article><span class="status later">Integrate</span><div><strong>Generic combat commands for the expanded roster</strong><p>Design target allocation and area fire around engine capabilities rather than Zero Hour unit names so ShockWave artillery and aircraftâ€”including the USA Armor General rosterâ€”can inherit the behavior with minimal per-unit data.</p></div></article>
+      </div>
+      <div class="decision"><strong>Packaging direction</strong><br>Keep our GPL engine changes in this repository and require players to supply a legitimate Zero Hour installation and their own ShockWave installation. First target the public 1.201 release; treat any private or beta branch as a separate compatibility target.</div>
+    </section>
+
+    <section>
       <header><h2>Networking and remaining issues</h2><span class="status later">Planned</span></header>
       <div class="items">
         <article><span class="status done">Done</span><div><strong>Shared control over the internet through Radmin VPN</strong><p>Matching clients completed a shared-control match across separate physical networks, with one PC on cellular data. Both games were bound to their Radmin addresses and used the Network lobby.</p></div></article>

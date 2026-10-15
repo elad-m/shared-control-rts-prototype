@@ -505,6 +505,84 @@ static void handlePlayerTemplateSelection(int index)
 	}
 }
 
+// TheSuperHackers @feature Restore the lobby layout the host used in the previous game: the
+// host's team and start position, the AI players, and the mixed-garrison option. A value that
+// no longer fits (a start position this map lacks, a color or position already taken, an army
+// that is not playable) falls back to random.
+static void restorePreviousLobbyLayout( LANGameInfo *game, const LANPreferences &pref )
+{
+	const MapMetaData *md = TheMapCache->findMap( game->getMap() );
+	const Int numStartPositions = md ? md->m_numPlayers : 0;
+
+	LANPreferences::const_iterator it = pref.find("AllowMixedAlliedGarrisons");
+	if (it != pref.end())
+		game->setAllowMixedAlliedGarrisons( it->second.compareNoCase("yes") == 0 );
+
+	LANGameSlot *hostSlot = game->getLANSlot(0);
+	it = pref.find("Team");
+	if (it != pref.end())
+	{
+		const Int team = atoi(it->second.str());
+		if (team >= 0 && team < MAX_SLOTS / 2)
+			hostSlot->setTeamNumber(team);
+	}
+	it = pref.find("StartPos");
+	if (it != pref.end())
+	{
+		const Int startPos = atoi(it->second.str());
+		if (startPos >= 0 && startPos < numStartPositions && !game->isStartPositionTaken(startPos, 0))
+			hostSlot->setStartPos(startPos);
+	}
+
+	it = pref.find("AISlots");
+	if (it == pref.end())
+		return;
+
+	Int occupied = 0;
+	for (Int i = 0; i < MAX_SLOTS; ++i)
+	{
+		if (game->getLANSlot(i)->isOccupied())
+			++occupied;
+	}
+
+	AsciiString remaining = it->second;
+	AsciiString entry;
+	while (remaining.nextToken(&entry, "_"))
+	{
+		Int index = -1, state = -1, playerTemplate = -1, color = -1, team = -1, startPos = -1;
+		if (sscanf(entry.str(), "%d,%d,%d,%d,%d,%d", &index, &state, &playerTemplate, &color, &team, &startPos) != 6)
+			continue;
+		if (index < 1 || index >= MAX_SLOTS || occupied >= numStartPositions)
+			continue;
+		if (state != SLOT_EASY_AI && state != SLOT_MED_AI && state != SLOT_BRUTAL_AI)
+			continue;
+
+		LANGameSlot *slot = game->getLANSlot(index);
+		if (slot->isOccupied())
+			continue;
+
+		slot->setState( SlotState(state) );
+		++occupied;
+
+		const PlayerTemplate *pt = (playerTemplate >= 0 && playerTemplate < ThePlayerTemplateStore->getPlayerTemplateCount())
+			? ThePlayerTemplateStore->getNthPlayerTemplate(playerTemplate) : nullptr;
+		slot->setPlayerTemplate( (pt && pt->isPlayableSide()) ? playerTemplate : PLAYERTEMPLATE_RANDOM );
+
+		if (color >= 0 && color < TheMultiplayerSettings->getNumColors() && !game->isColorTaken(color, index))
+			slot->setColor(color);
+		if (team >= 0 && team < MAX_SLOTS / 2)
+			slot->setTeamNumber(team);
+		if (startPos >= 0 && startPos < numStartPositions && !game->isStartPositionTaken(startPos, index))
+			slot->setStartPos(startPos);
+
+		// An AI player cannot be an observer, so its army list differs from an open slot's.
+		PopulatePlayerTemplateComboBox(index, comboBoxPlayerTemplate, game, FALSE);
+	}
+
+	// Close whatever is left over for this map, now that the AI players are back.
+	game->adjustSlotsForMap();
+}
+
 static void handleStartPositionSelection(Int player, int startPos)
 {
 	LANGameInfo *myGame = TheLAN->GetMyGame();
@@ -957,6 +1035,8 @@ void LanGameOptionsMenuInit( WindowLayout *layout, void *userData )
 
 			TheLAN->GetMyGame()->adjustSlotsForMap(); // BGC- adjust the slots for the selected map.
 		}
+
+		restorePreviousLobbyLayout(game, pref);
 
 		//GadgetTextEntrySetText(comboBoxPlayer[0], TheLAN->GetMyName());
 		lanUpdateSlotList();

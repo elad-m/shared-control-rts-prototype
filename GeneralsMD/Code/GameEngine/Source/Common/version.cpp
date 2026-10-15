@@ -31,6 +31,8 @@
 #include "GameClient/GameText.h"
 #include "Common/version.h"
 
+#include <string>
+
 #include "gitinfo.h"
 
 Version *TheVersion = nullptr;	///< The Version singleton
@@ -321,12 +323,25 @@ UnicodeString Version::getUnicodeBuildUserOrGitCommitAuthorName() const
 UnicodeString Version::getUnicodeProductTitle() const
 {
 	// @todo Make configurable
-	return L"Community Patch";
+	// TheSuperHackers @feature This fork's own name, so its builds are not taken for the upstream patch.
+	return L"Shared Control";
 }
 
 UnicodeString Version::getUnicodeProductVersion() const
 {
-	return getUnicodeGitVersion();
+	// TheSuperHackers @feature Show the release this build was made from, so players can check at
+	// a glance that they run the same one. Release tags look like "shared-control-shockwave-0.4.0"
+	// and the common prefix is dropped. A build that is not exactly a release keeps git's own
+	// suffix (commits since the tag, and the hash) and a leading "~" for uncommitted changes.
+	const std::wstring tagOrHash = getUnicodeGitTagOrHash().str();
+	const std::wstring prefix = L"shared-control-";
+	const size_t at = tagOrHash.find(prefix);
+	if (at == std::wstring::npos || at > 1)
+		return getUnicodeGitTagOrHash();
+
+	UnicodeString version;
+	version.set((tagOrHash.substr(0, at) + tagOrHash.substr(at + prefix.size())).c_str());
+	return version;
 }
 
 UnicodeString Version::getUnicodeProductAuthor() const

@@ -396,8 +396,25 @@ void Win32Mouse::initCursorResources()
 					}
 				}
 
+				// TheSuperHackers @feature Cursors that ship with this build sit in a Cursors folder
+				// beside the executable, which is the working directory. resourcePath starts with "data\".
+				if (!loaded)
+				{
+					const char *besideExecutable = resourcePath + 5;
+					if (TheLocalFileSystem->doesFileExist(besideExecutable))
+					{
+						cursorResources[cursor][direction]=LoadCursorFromFile(besideExecutable);
+						loaded = TRUE;
+					}
+				}
+
 				if (!loaded)
 					cursorResources[cursor][direction]=LoadCursorFromFile(resourcePath);
+
+				// TheSuperHackers @feature The reverse-move cursor is not part of the game data. If its
+				// file is missing, show the move cursor rather than no cursor at all.
+				if (cursor == REVERSE_MOVETO && !cursorResources[cursor][direction])
+					cursorResources[cursor][direction] = cursorResources[MOVETO][0];
 				DEBUG_ASSERTCRASH(cursorResources[cursor][direction], ("MissingCursor %s",resourcePath));
 			}
 		}
