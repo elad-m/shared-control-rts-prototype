@@ -70,6 +70,7 @@
 #include "GameLogic/TurretAI.h"
 #include "GameLogic/Weapon.h"
 #include "Common/Radar.h"									// For TheRadar
+#include "GameLogic/Module/VeterancyCrateCollide.h"
 
 #define SLEEPY_AI
 
@@ -273,6 +274,7 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_isSafePath = FALSE;
 	m_movementComplete = FALSE;
 	m_reverseMoveRequested = FALSE;
+	m_pilotAutoReturnPending = FALSE;
 	m_isMoving = FALSE;
 	m_isBlocked = FALSE;
 	m_isBlockedAndStuck = FALSE;
@@ -1002,6 +1004,80 @@ void AIUpdateInterface::friend_notifyStateMachineChanged()
  * The "main loop" of the AI subsystem
  */
 DECLARE_PERF_TIMER(AIUpdateInterface_update)
+//-------------------------------------------------------------------------------------------------
+static VeterancyCrateCollide *findPilotModule( Object *obj )
+{
+	static const NameKeyType key = NAMEKEY("VeterancyCrateCollide");
+	for (BehaviorModule **bmi = obj->getBehaviorModules(); *bmi; ++bmi)
+	{
+		if ((*bmi)->getModuleNameKey() == key)
+		{
+			VeterancyCrateCollide *module = static_cast<VeterancyCrateCollide *>( *bmi );
+			return module->isPilot() ? module : nullptr;
+		}
+	}
+	return nullptr;
+}
+
+//-------------------------------------------------------------------------------------------------
+void AIUpdateInterface::requestPilotAutoReturn()
+{
+	if (findPilotModule( getObject() ) == nullptr)
+		return;
+	m_pilotAutoReturnPending = TRUE;
+	wakeUpNow();
+}
+
+//-------------------------------------------------------------------------------------------------
+void AIUpdateInterface::startPilotAutoReturn()
+{
+	Object *pilot = getObject();
+	const Player *owner = pilot->getControllingPlayer();
+	VeterancyCrateCollide *pilotModule = findPilotModule( pilot );
+	if (owner == nullptr || pilotModule == nullptr)
+		return;
+
+	// Far enough to reach anything on the map; the search is sorted nearest first.
+	const Real SEARCH_ANYWHERE = 1000000.0f;
+	PartitionFilterAlive alive;
+
+	// 1. The nearest vehicle the pilot may climb into, by the usual pilot rule.
+	{
+		KindOfMaskType vehicle;
+		vehicle.set( KINDOF_VEHICLE );
+		PartitionFilterAcceptByKindOf isVehicle( vehicle, KINDOFMASK_NONE );
+		PartitionFilter *filters[] = { &alive, &isVehicle, nullptr };
+		SimpleObjectIterator *iter = ThePartitionManager->iterateObjectsInRange( pilot, SEARCH_ANYWHERE, FROM_CENTER_2D, filters, ITER_SORTED_NEAR_TO_FAR );
+		MemoryPoolObjectHolder hold( iter );
+		for (Object *candidate = iter->first(); candidate; candidate = iter->next())
+		{
+			if (pilotModule->canPilotEnter( candidate ))
+			{
+				aiEnter( candidate, CMD_FROM_AI );
+				return;
+			}
+		}
+	}
+
+	// 2. Otherwise the owner's nearest Command Center. 3. Neither: stay put.
+	{
+		KindOfMaskType commandCenter;
+		commandCenter.set( KINDOF_COMMANDCENTER );
+		PartitionFilterAcceptByKindOf isCommandCenter( commandCenter, KINDOFMASK_NONE );
+		PartitionFilter *filters[] = { &alive, &isCommandCenter, nullptr };
+		SimpleObjectIterator *iter = ThePartitionManager->iterateObjectsInRange( pilot, SEARCH_ANYWHERE, FROM_CENTER_2D, filters, ITER_SORTED_NEAR_TO_FAR );
+		MemoryPoolObjectHolder hold( iter );
+		for (Object *candidate = iter->first(); candidate; candidate = iter->next())
+		{
+			if (candidate->getControllingPlayer() == owner)
+			{
+				aiMoveToPosition( candidate->getPosition(), CMD_FROM_AI );
+				return;
+			}
+		}
+	}
+}
+
 UpdateSleepTime AIUpdateInterface::update()
 {
 	//DEBUG_LOG(("AIUpdateInterface frame %d: %08lx",TheGameLogic->getFrame(),getObject()));
@@ -1111,6 +1187,22 @@ UpdateSleepTime AIUpdateInterface::update()
 		// strangely, dead things need to NOT sleep at all. (but they don't stay dead for long,
 		// so this is not too bad.)
 		subMachineSleep = UPDATE_SLEEP_NONE;
+	}
+
+	// TheSuperHackers @feature Pilot auto-return, once the pilot has landed and is standing idle.
+	if (m_pilotAutoReturnPending)
+	{
+		Object *pilot = getObject();
+		if (isAiInDeadState())
+			m_pilotAutoReturnPending = FALSE;
+		else if (pilot->getContainedBy() == nullptr && !pilot->isSignificantlyAboveTerrain() && isIdle())
+		{
+			m_pilotAutoReturnPending = FALSE;
+			startPilotAutoReturn();
+			subMachineSleep = UPDATE_SLEEP_NONE;
+		}
+		else if (UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4) < subMachineSleep)
+			subMachineSleep = UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4);
 	}
 
 	// do this objects movement
@@ -2629,6 +2721,9 @@ void AIUpdateInterface::aiDoCommand(const AICommandParms* parms)
 
 	if (!isAllowedToRespondToAiCommands(parms))
 		return;
+
+	// TheSuperHackers @feature An order given to a freshly ejected pilot replaces its auto-return.
+	m_pilotAutoReturnPending = FALSE;
 
 #ifdef ALLOW_SURRENDER
 	// surrendered items have very limited options, and only via AI cmds

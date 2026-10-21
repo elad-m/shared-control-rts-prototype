@@ -39,6 +39,8 @@
 #include "GameLogic/ExperienceTracker.h"
 #include "GameLogic/Object.h"
 #include "GameLogic/ObjectCreationList.h"
+#include "GameLogic/Module/AIUpdate.h"
+#include "GameLogic/Module/ContainModule.h"
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
@@ -86,7 +88,24 @@ EjectPilotDie::~EjectPilotDie()
 	if (!ocl || !dyingObject)
 		return;	// it's OK for damageDealer to be null
 
-	ObjectCreationList::create(ocl, dyingObject, damageDealer);
+	Object *created = ObjectCreationList::create(ocl, dyingObject, damageDealer);
+
+	// TheSuperHackers @feature Pilot auto-return. The list returns the pilot, or the parachute it
+	// sits in. Hijackers leaving a vehicle use this code too; the request ignores non-pilots.
+	if (created)
+	{
+		if (created->getAI())
+			created->getAI()->requestPilotAutoReturn();
+		if (created->getContain() && created->getContain()->getContainedItemsList())
+		{
+			const ContainedItemsList *items = created->getContain()->getContainedItemsList();
+			for (ContainedItemsList::const_iterator it = items->begin(); it != items->end(); ++it)
+			{
+				if ((*it)->getAI())
+					(*it)->getAI()->requestPilotAutoReturn();
+			}
+		}
+	}
 
 	AudioEventRTS voiceEject = *(dyingObject->getTemplate()->getPerUnitSound("VoiceEject"));
 	voiceEject.setPosition( dyingObject->getPosition() );

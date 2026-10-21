@@ -640,6 +640,11 @@ protected:
 
 public:
 
+	// TheSuperHackers @feature Pilot auto-return. Called on a freshly ejected pilot: once it has
+	// landed and is idle, it heads for the nearest vehicle it may enter, or else its owner's nearest
+	// Command Center. Any order it gets first cancels this. Does nothing for non-pilots.
+	void requestPilotAutoReturn();
+
 	StateID getCurrentStateID() const { return getStateMachine()->getCurrentStateID(); }	///< return the id of the current state of the machine
 /// @ todo -- srj sez: JBA NUKE THIS CODE, IT IS EVIL
 	void friend_addToWaypointGoalPath( const Coord3D *pathPoint ) { getStateMachine()->addToGoalPath(pathPoint); }
@@ -792,6 +797,8 @@ private:
 	Bool				m_isSafePath;								///< True if we are just approaching to tighten.
 	Bool				m_movementComplete;					///< True if we finished an AIInternalMoveToState.
 	Bool				m_reverseMoveRequested;			///< Only set while a reverse-move order is being issued; not saved.
+	Bool				m_pilotAutoReturnPending;		///< A freshly ejected pilot that will head for safety once idle; not saved.
+	void startPilotAutoReturn();
 	Bool				m_isMoving;									///< True if we are in an AIInternalMoveToState.
 	Bool				m_isBlocked;
 	Bool				m_isBlockedAndStuck;				///< True if we are stuck & need to recompute path.

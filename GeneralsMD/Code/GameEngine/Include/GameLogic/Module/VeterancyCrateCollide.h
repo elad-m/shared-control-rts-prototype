@@ -79,6 +79,10 @@ public:
 	VeterancyCrateCollide( Thing *thing, const ModuleData* moduleData );
 	// virtual destructor prototype provided by memory pool declaration
 
+	// TheSuperHackers @feature Pilot auto-return: is this a pilot, and may it climb into that vehicle?
+	Bool isPilot() const { return getVeterancyCrateCollideModuleData()->m_isPilot; }
+	Bool canPilotEnter( const Object *vehicle ) const { return isPilot() && isValidToExecute( vehicle ); }
+
 protected:
 
 	/// This allows specific vetoes to certain types of crates and their data
