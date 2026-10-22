@@ -46,7 +46,8 @@ an allied building is paid for by that building's owner, and the completed unit
 belongs to that owner.
 
 To play the ShockWave mod on this build, follow [SHOCKWAVE.md](SHOCKWAVE.md).
-That setup is experimental.
+To play Zero Hour Escalated, follow [ESCALATED.md](ESCALATED.md).
+Both setups are experimental.
 
 ## Requirements
 

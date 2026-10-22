@@ -26,8 +26,12 @@ $requiredFiles = @(
     (Join-Path $PSScriptRoot 'launch-shared-control.cmd'),
     (Join-Path $PSScriptRoot 'launch-shockwave-shared-control.cmd'),
     (Join-Path $PSScriptRoot 'verify-shockwave-setup.ps1'),
+    (Join-Path $PSScriptRoot 'launch-escalated-shared-control.cmd'),
+    (Join-Path $PSScriptRoot 'setup-escalated.ps1'),
+    (Join-Path $PSScriptRoot 'escalated-ai-fixes.json'),
     (Join-Path $repositoryRoot 'SHARED_CONTROL.md'),
     (Join-Path $repositoryRoot 'SHOCKWAVE.md'),
+    (Join-Path $repositoryRoot 'ESCALATED.md'),
     (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani'),
     (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md'),
     (Join-Path $repositoryRoot 'LICENSE.md')
@@ -64,8 +68,12 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'run-zero-hour-lan-client.ps1') 
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-shared-control.cmd') -Destination (Join-Path $stagingDirectory 'Launch Shared Control.cmd')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-shockwave-shared-control.cmd') -Destination (Join-Path $stagingDirectory 'Launch ShockWave Shared Control.cmd')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'verify-shockwave-setup.ps1') -Destination $stagingDirectory
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-escalated-shared-control.cmd') -Destination (Join-Path $stagingDirectory 'Launch Escalated Shared Control.cmd')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'setup-escalated.ps1') -Destination $stagingDirectory
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'escalated-ai-fixes.json') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'SHARED_CONTROL.md') -Destination (Join-Path $stagingDirectory 'README.md')
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'SHOCKWAVE.md') -Destination $stagingDirectory
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'ESCALATED.md') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md') -Destination $stagingDirectory
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE.md') -Destination $stagingDirectory
 # Cursors that are part of this build, not of the game data. The game looks for them beside the executable.
