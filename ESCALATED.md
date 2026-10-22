@@ -17,8 +17,8 @@ the new factions have been played on this build.
 - Your own installed copy of Generals and Zero Hour (version 1.04).
 - The Zero Hour Escalated 7.1.2 mod, downloaded by you through GenLauncher. This
   repository does not contain or distribute Escalated files.
-- A release zip from this repository's Releases page that contains
-  `Launch Escalated Shared Control.cmd` and `setup-escalated.ps1`.
+- The release zip from this repository's Releases page:
+  `shared-control-rts-0.5.0.zip` (the first release with Escalated support).
 - Radmin VPN, on the same Radmin network as the other players.
 
 Every player must use the exact same release zip. A different build ends the
@@ -90,7 +90,8 @@ your mod folder is not `C:\EscalatedModBig`, pass it as an argument:
 & '.\Launch Escalated Shared Control.cmd' D:\EscalatedModBig
 ```
 
-Every player's window title must show the same release.
+You have the right build when the window title starts with
+**Shared Control 0.5.0**. Every player's title must show the same release.
 
 ### 6. Start a match
 
