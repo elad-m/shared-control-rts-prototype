@@ -782,6 +782,12 @@ public:
 
 	void initSpecialPowershortcutBar( Player *player);
 
+	// TheSuperHackers @feature Shared-control General Powers tabs: one tab per allied player above
+	// the shortcut column, which shows the powers of the selected player only.
+	Bool isSpecialPowerTab( const GameWindow *control ) const;
+	Bool processSpecialPowerTabClick( GameWindow *control );	///< returns TRUE when the control was a tab
+	void noteSpecialPowerShortcutClicked( const GameWindow *control );	///< an ally's power was used: show the local player's again
+
 	void triggerRadarAttackGlow();
 
 	void drawSpecialPowerShortcutMultiplierText();
@@ -928,6 +934,15 @@ protected:
 
 	WindowLayout *m_specialPowerLayout;
 	GameWindow *m_specialPowerShortcutParent;
+
+	enum { MAX_SPECIAL_POWER_TABS = 8 };
+	GameWindow *m_specialPowerTabs[ MAX_SPECIAL_POWER_TABS ];
+	Int m_specialPowerTabPlayerIndices[ MAX_SPECIAL_POWER_TABS ];	///< -1 for an unused tab
+	Int m_specialPowerShownPlayerIndex;		///< whose powers the column shows; -1 means the local player
+	Bool m_specialPowerSnapBackPending;		///< show the local player's powers again on the next update
+	void createSpecialPowerTabs();
+	void layoutSpecialPowerTabs( Player *const *players, Int playerCount, Int usedButtons );
+	Bool hasReadySpecialPowerShortcut( Player *player );
 
 	GameWindow *m_commandWindows[ MAX_COMMANDS_PER_SET ];			///< command window controls for easy access
 	const CommandButton *m_commonCommands[ MAX_COMMANDS_PER_SET ];	///< shared commands we will use for multi-selection

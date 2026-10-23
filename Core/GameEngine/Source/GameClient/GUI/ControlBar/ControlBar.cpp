@@ -935,6 +935,13 @@ ControlBar::ControlBar()
 		m_specialPowerShortcutButtonParents[i] = nullptr;
 		m_specialPowerShortcutPlayerIndices[i] = -1;
 	}
+	for( i = 0; i < MAX_SPECIAL_POWER_TABS; i++ )
+	{
+		m_specialPowerTabs[i] = nullptr;
+		m_specialPowerTabPlayerIndices[i] = -1;
+	}
+	m_specialPowerShownPlayerIndex = -1;
+	m_specialPowerSnapBackPending = FALSE;
 
 	m_specialPowerShortcutParent = nullptr;
 	m_specialPowerLayout = nullptr;
@@ -1046,6 +1053,12 @@ ControlBar::~ControlBar()
 		m_specialPowerLayout->destroyWindows();
 		deleteInstance(m_specialPowerLayout);
 		m_specialPowerLayout = nullptr;
+	}
+	// The tabs were children of the shortcut layout's parent window.
+	for( Int tab = 0; tab < MAX_SPECIAL_POWER_TABS; ++tab )
+	{
+		m_specialPowerTabs[tab] = nullptr;
+		m_specialPowerTabPlayerIndices[tab] = -1;
 	}
 
 	m_radarAttackGlowWindow = nullptr;
@@ -3246,6 +3259,193 @@ void ControlBar::updateRadarAttackGlow ()
 
 
 }
+//-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Shared-control General Powers tabs. With human allies, a row of tabs in
+// each player's color sits above the shortcut column; the column shows the selected player's powers.
+//-------------------------------------------------------------------------------------------------
+enum { SPECIAL_POWER_TAB_SELECTED = 1, SPECIAL_POWER_TAB_READY = 2 };
+
+static Player *findPlayerByIndex( Int playerIndex )
+{
+	for( Int i = 0; ThePlayerList && i < ThePlayerList->getPlayerCount(); ++i )
+	{
+		Player *player = ThePlayerList->getNthPlayer( i );
+		if( player && player->getPlayerIndex() == playerIndex )
+			return player;
+	}
+	return nullptr;
+}
+
+/// The normal push button, plus a dot in the corner while that player has a power ready.
+static void specialPowerTabDraw( GameWindow *window, WinInstanceData *instData )
+{
+	GameWinDrawFunc buttonDraw = TheWindowManager->getPushButtonDrawFunc();
+	if( buttonDraw )
+		buttonDraw( window, instData );
+
+	const UnsignedInt flags = (UnsignedInt)(size_t)GadgetButtonGetData( window );
+	if( BitIsSet( flags, SPECIAL_POWER_TAB_READY ) )
+	{
+		Int x, y, width, height;
+		window->winGetScreenPosition( &x, &y );
+		window->winGetSize( &width, &height );
+		const Int dot = MAX( 3, height / 3 );
+		TheDisplay->drawFillRect( x + width - dot - 1, y + 1, dot, dot, GameMakeColor( 239, 159, 39, 255 ) );
+	}
+}
+
+void ControlBar::createSpecialPowerTabs()
+{
+	if( !m_specialPowerShortcutParent || !m_specialPowerShortcutButtons[ 0 ] )
+		return;
+
+	GameFont *font = m_specialPowerShortcutButtons[ 0 ]->winGetFont();
+	for( Int tab = 0; tab < MAX_SPECIAL_POWER_TABS; ++tab )
+	{
+		WinInstanceData instData;
+		instData.init();
+		instData.m_style = GWS_PUSH_BUTTON | GWS_MOUSE_TRACK;
+		GameWindow *tabWindow = TheWindowManager->gogoGadgetPushButton( m_specialPowerShortcutParent,
+			WIN_STATUS_ENABLED | WIN_STATUS_HIDDEN | WIN_STATUS_NO_FOCUS, 0, 0, 1, 1, &instData, font, TRUE );
+		if( !tabWindow )
+			continue;
+		tabWindow->winSetFont( font );
+		tabWindow->winSetDrawFunc( specialPowerTabDraw );
+		m_specialPowerTabs[ tab ] = tabWindow;
+		m_specialPowerTabPlayerIndices[ tab ] = -1;
+	}
+}
+
+/// Tabs for the local player and each ally, two per row, right above the topmost shown power.
+void ControlBar::layoutSpecialPowerTabs( Player *const *players, Int playerCount, Int usedButtons )
+{
+	GameWindow *bottomSlot = m_specialPowerShortcutButtonParents[ 0 ];
+	const Int tabCount = ( playerCount > 1 && bottomSlot ) ? MIN( playerCount, (Int)MAX_SPECIAL_POWER_TABS ) : 0;
+
+	Int slotX = 0, slotY = 0, slotWidth = 0, slotHeight = 0;
+	if( bottomSlot )
+	{
+		bottomSlot->winGetPosition( &slotX, &slotY );
+		bottomSlot->winGetSize( &slotWidth, &slotHeight );
+	}
+	// The column fills upwards from the bottom slot.
+	Int top = slotY + slotHeight;
+	if( usedButtons > 0 && m_specialPowerShortcutButtonParents[ usedButtons - 1 ] )
+	{
+		Int unusedX;
+		m_specialPowerShortcutButtonParents[ usedButtons - 1 ]->winGetPosition( &unusedX, &top );
+	}
+	const Int tabWidth = slotWidth / 2;
+	const Int tabHeight = MAX( 8, slotHeight * 2 / 5 );
+	top = MAX( 0, top - ( ( tabCount + 1 ) / 2 ) * tabHeight );
+
+	for( Int tab = 0; tab < MAX_SPECIAL_POWER_TABS; ++tab )
+	{
+		GameWindow *tabWindow = m_specialPowerTabs[ tab ];
+		if( !tabWindow )
+			continue;
+		if( tab >= tabCount )
+		{
+			tabWindow->winHide( TRUE );
+			m_specialPowerTabPlayerIndices[ tab ] = -1;
+			continue;
+		}
+
+		Player *tabPlayer = players[ tab ];
+		const Bool selected = ( tab == 0 ) ? ( m_specialPowerShownPlayerIndex == -1 )
+			: ( tabPlayer->getPlayerIndex() == m_specialPowerShownPlayerIndex );
+
+		tabWindow->winSetPosition( slotX + ( tab % 2 ) * tabWidth, top + ( tab / 2 ) * tabHeight );
+		tabWindow->winSetSize( tabWidth, tabHeight );
+
+		// The player's color fills the tab; the label is dark or light to stay readable on it.
+		const Color color = tabPlayer->getPlayerColor();
+		UnsignedByte red, green, blue, alpha;
+		GameGetColorComponents( color, &red, &green, &blue, &alpha );
+		const Bool lightColor = ( red * 299 + green * 587 + blue * 114 ) / 1000 > 140;
+		const Color textColor = lightColor ? GameMakeColor( 0, 0, 0, 255 ) : GameMakeColor( 255, 255, 255, 255 );
+		GadgetButtonSetEnabledColor( tabWindow, color );
+		GadgetButtonSetHiliteColor( tabWindow, color );
+		GadgetButtonSetEnabledBorderColor( tabWindow, GameMakeColor( 0, 0, 0, 255 ) );
+		GadgetButtonSetHiliteBorderColor( tabWindow, GameMakeColor( 255, 255, 255, 255 ) );
+		tabWindow->winSetEnabledTextColors( textColor, textColor );
+		tabWindow->winSetHiliteTextColors( textColor, textColor );
+
+		UnicodeString name = tabPlayer->getPlayerDisplayName();
+		UnicodeString label;
+		for( Int c = 0; c < 2 && c < name.getLength(); ++c )
+			label.concat( name.getCharAt( c ) );
+		GadgetButtonSetText( tabWindow, label );
+		tabWindow->winSetTooltip( name );
+
+		// The selected tab gets a white frame. Setting the border also keeps the flags below in place.
+		GadgetButtonSetBorder( tabWindow, GameMakeColor( 255, 255, 255, 255 ), selected );
+		GadgetButtonSetData( tabWindow, (void *)(size_t)( selected ? SPECIAL_POWER_TAB_SELECTED : 0 ) );
+		m_specialPowerTabPlayerIndices[ tab ] = tabPlayer->getPlayerIndex();
+		tabWindow->winHide( FALSE );
+	}
+}
+
+Bool ControlBar::hasReadySpecialPowerShortcut( Player *player )
+{
+	const PlayerTemplate *shortcutTemplate = player ? player->getPlayerTemplate() : nullptr;
+	if( !shortcutTemplate || shortcutTemplate->getSpecialPowerShortcutCommandSet().isEmpty() )
+		return FALSE;
+	const CommandSet *commandSet = findCommandSet( shortcutTemplate->getSpecialPowerShortcutCommandSet() );
+	if( !commandSet )
+		return FALSE;
+
+	const Int shortcutCount = MIN( shortcutTemplate->getSpecialPowerShortcutButtonCount(), MAX_SPECIAL_POWER_SHORTCUTS );
+	for( Int i = 0; i < shortcutCount; ++i )
+	{
+		const CommandButton *commandButton = commandSet->getCommandButton( i );
+		if( commandButton && commandButton->getSpecialPowerTemplate()
+				&& player->countReadyShortcutSpecialPowersOfType( commandButton->getSpecialPowerTemplate()->getSpecialPowerType() ) > 0 )
+			return TRUE;
+	}
+	return FALSE;
+}
+
+Bool ControlBar::isSpecialPowerTab( const GameWindow *control ) const
+{
+	for( Int tab = 0; tab < MAX_SPECIAL_POWER_TABS; ++tab )
+	{
+		if( control && m_specialPowerTabs[ tab ] == control )
+			return TRUE;
+	}
+	return FALSE;
+}
+
+Bool ControlBar::processSpecialPowerTabClick( GameWindow *control )
+{
+	Player *localPlayer = ThePlayerList ? ThePlayerList->getLocalPlayer() : nullptr;
+	for( Int tab = 0; tab < MAX_SPECIAL_POWER_TABS; ++tab )
+	{
+		if( !control || m_specialPowerTabs[ tab ] != control )
+			continue;
+
+		const Int playerIndex = m_specialPowerTabPlayerIndices[ tab ];
+		m_specialPowerShownPlayerIndex = ( !localPlayer || playerIndex == localPlayer->getPlayerIndex() ) ? -1 : playerIndex;
+		m_specialPowerSnapBackPending = FALSE;
+		if( localPlayer )
+			populateSpecialPowerShortcut( localPlayer );
+		return TRUE;
+	}
+	return FALSE;
+}
+
+void ControlBar::noteSpecialPowerShortcutClicked( const GameWindow *control )
+{
+	if( m_specialPowerShownPlayerIndex == -1 )
+		return;
+	// Switch back on the next update, after this click has been handled with the ally's power.
+	for( Int i = 0; i < m_currentlyUsedSpecialPowersButtons; ++i )
+	{
+		if( control && m_specialPowerShortcutButtons[ i ] == control )
+			m_specialPowerSnapBackPending = TRUE;
+	}
+}
+
 void ControlBar::initSpecialPowershortcutBar( Player *player)
 {
 	Int i = 0;
@@ -3262,6 +3462,13 @@ void ControlBar::initSpecialPowershortcutBar( Player *player)
 		deleteInstance(m_specialPowerLayout);
 		m_specialPowerLayout = nullptr;
 	}
+	for( i = 0; i < MAX_SPECIAL_POWER_TABS; ++i )
+	{
+		m_specialPowerTabs[i] = nullptr;
+		m_specialPowerTabPlayerIndices[i] = -1;
+	}
+	m_specialPowerShownPlayerIndex = -1;
+	m_specialPowerSnapBackPending = FALSE;
 	m_specialPowerShortcutParent = nullptr;
 	m_currentlyUsedSpecialPowersButtons = 0;
 	const PlayerTemplate *pt = player->getPlayerTemplate();
@@ -3307,6 +3514,7 @@ void ControlBar::initSpecialPowershortcutBar( Player *player)
 		}
 	}
 
+	createSpecialPowerTabs();
 }
 
 void ControlBar::populateSpecialPowerShortcut( Player *player)
@@ -3345,12 +3553,25 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 		}
 	}
 
+	// TheSuperHackers @feature With allies the column shows one player's powers at a time, chosen
+	// with the tabs above it. An ally who left or is no longer allied falls back to the local player.
+	Player *shownPlayer = player;
+	for (Int k = 1; k < shortcutPlayerCount; ++k)
+	{
+		if (shortcutPlayers[k]->getPlayerIndex() == m_specialPowerShownPlayerIndex)
+			shownPlayer = shortcutPlayers[k];
+	}
+	if (shownPlayer == player)
+		m_specialPowerShownPlayerIndex = -1;
+
 	Int currentButton = 0;
 	for (Int shortcutPlayerIndex = 0;
 			 shortcutPlayerIndex < shortcutPlayerCount && currentButton < m_currentlyUsedSpecialPowersButtons;
 			 ++shortcutPlayerIndex)
 	{
 		Player *shortcutPlayer = shortcutPlayers[shortcutPlayerIndex];
+		if (shortcutPlayer != shownPlayer)
+			continue;
 		const PlayerTemplate *shortcutTemplate = shortcutPlayer->getPlayerTemplate();
 		if (!shortcutTemplate || shortcutTemplate->getSpecialPowerShortcutCommandSet().isEmpty())
 			continue;
@@ -3564,6 +3785,8 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 
 	}
 	}
+	layoutSpecialPowerTabs( shortcutPlayers, shortcutPlayerCount, currentButton );
+
 	if(m_contextParent[ CP_MASTER ] && !m_contextParent[ CP_MASTER ]->winIsHidden() && m_specialPowerShortcutParent->winIsHidden())
 	{
 		showSpecialPowerShortcut();
@@ -3680,6 +3903,15 @@ void ControlBar::updateSpecialPowerShortcut()
 	if(!m_specialPowerShortcutParent || !m_specialPowerShortcutButtons
 	   || !ThePlayerList || !ThePlayerList->getLocalPlayer())
 		return;
+
+	// TheSuperHackers @feature After an ally's power was used, show the local player's powers again.
+	if( m_specialPowerSnapBackPending )
+	{
+		m_specialPowerSnapBackPending = FALSE;
+		m_specialPowerShownPlayerIndex = -1;
+		populateSpecialPowerShortcut( ThePlayerList->getLocalPlayer() );
+		return;
+	}
 
 	const Bool hasValidShortcutButton = canShowSpecialPowerShortcut();
 
@@ -3798,6 +4030,18 @@ void ControlBar::updateSpecialPowerShortcut()
 				win->winEnable( TRUE );
 				break;
 		}
+	}
+
+	// TheSuperHackers @feature A dot on a tab that isn't shown while that player has a power ready.
+	for( Int tab = 0; tab < MAX_SPECIAL_POWER_TABS; ++tab )
+	{
+		GameWindow *tabWindow = m_specialPowerTabs[ tab ];
+		if( !tabWindow || tabWindow->winIsHidden() )
+			continue;
+		UnsignedInt flags = (UnsignedInt)(size_t)GadgetButtonGetData( tabWindow ) & SPECIAL_POWER_TAB_SELECTED;
+		if( !flags && hasReadySpecialPowerShortcut( findPlayerByIndex( m_specialPowerTabPlayerIndices[ tab ] ) ) )
+			flags |= SPECIAL_POWER_TAB_READY;
+		GadgetButtonSetData( tabWindow, (void *)(size_t)flags );
 	}
 }
 

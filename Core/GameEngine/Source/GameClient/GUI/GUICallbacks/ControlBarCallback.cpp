@@ -369,7 +369,8 @@ WindowMsgHandledType ControlBarSystem( GameWindow *window, UnsignedInt msg,
 		{
 			GameWindow *control = (GameWindow *)mData1;
 
-			TheControlBar->processContextSensitiveButtonTransition( control, (GadgetGameMessage)msg);
+			if( !TheControlBar->isSpecialPowerTab( control ) )
+				TheControlBar->processContextSensitiveButtonTransition( control, (GadgetGameMessage)msg);
 			break;
 		}
 
@@ -389,7 +390,11 @@ WindowMsgHandledType ControlBarSystem( GameWindow *window, UnsignedInt msg,
 			static NameKeyType buttonIdleWorker = NAMEKEY("ControlBar.wnd:ButtonIdleWorker");
 
 			Int controlID = control->winGetWindowId();
-			if( controlID == buttonCommunicator )
+			if( TheControlBar->processSpecialPowerTabClick( control ) )
+			{
+				// a General Powers tab: the column now shows that player's powers
+			}
+			else if( controlID == buttonCommunicator )
 			{
 				ToggleDiplomacy(FALSE);
 			}
@@ -446,6 +451,7 @@ WindowMsgHandledType ControlBarSystem( GameWindow *window, UnsignedInt msg,
 				// control bar, send the button processing that way
 				//
 				TheControlBar->processContextSensitiveButtonClick( control, (GadgetGameMessage)msg );
+				TheControlBar->noteSpecialPowerShortcutClicked( control );
 			}
 			break;
 
