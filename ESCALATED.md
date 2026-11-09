@@ -18,7 +18,7 @@ the new factions have been played on this build.
 - The Zero Hour Escalated 7.1.2 mod, downloaded by you through GenLauncher. This
   repository does not contain or distribute Escalated files.
 - The release zip from this repository's Releases page:
-  `shared-control-rts-0.6.0.zip`.
+  `shared-control-rts-0.7.0.zip`.
 - Radmin VPN, on the same Radmin network as the other players.
 
 Every player must use the exact same release zip. A different build ends the
@@ -91,7 +91,7 @@ your mod folder is not `C:\EscalatedModBig`, pass it as an argument:
 ```
 
 You have the right build when the window title starts with
-**Shared Control 0.6.0**. Every player's title must show the same release.
+**Shared Control 0.7.0**. Every player's title must show the same release.
 
 ### 6. Start a match
 

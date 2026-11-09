@@ -25,6 +25,12 @@ Hold **Z** while giving a move order to make tracked and wheeled vehicles drive
 there in reverse. The cursor changes to two arrows in a line while Z is held.
 This works with or without shared control.
 
+Press **Y**, then click, for an **artillery slayer** order: the units attack-move
+there but only stop to destroy enemy artillery near the route, then drive back
+in reverse to where the order was given. Press Y again to cancel. See
+[CHANGELOG.md](CHANGELOG.md) for what counts as artillery and for what each
+release adds.
+
 Players can transfer $500, $1,000, or $5,000 from their own wallet to an
 active ally through the Diplomacy screen.
 
