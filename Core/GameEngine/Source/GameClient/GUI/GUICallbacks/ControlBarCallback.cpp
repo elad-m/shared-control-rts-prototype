@@ -115,6 +115,10 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 					if (command && command->getCommandType() == GUI_COMMAND_ATTACK_MOVE)
 					{
 						cur = Mouse::ATTACKMOVETO;
+#if RTS_ZEROHOUR
+						if (TheInGameUI->isArtillerySlayerArmed())
+							cur = Mouse::ARTILLERY_SLAYER;
+#endif
 					}
 					else
 					{
@@ -197,6 +201,10 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 						if (command && command->getCommandType() == GUI_COMMAND_ATTACK_MOVE)
 						{
 							cur = Mouse::ATTACKMOVETO;
+#if RTS_ZEROHOUR
+							if (TheInGameUI->isArtillerySlayerArmed())
+								cur = Mouse::ARTILLERY_SLAYER;
+#endif
 						}
 						else
 						{

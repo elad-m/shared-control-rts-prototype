@@ -492,6 +492,13 @@ public:
 	// by the move that order starts, so it never outlives the order.
 	void setReverseMoveRequested(Bool requested) { m_reverseMoveRequested = requested; }
 	Bool takeReverseMoveRequest() { const Bool requested = m_reverseMoveRequested; m_reverseMoveRequested = FALSE; return requested; }
+
+	// TheSuperHackers @feature Artillery slayer. The request is set just before the attack move is
+	// issued and taken up by the attack-move state. When that attack move ends, the state asks for
+	// the trip home, which starts once the unit is idle; any order given first cancels it.
+	void setArtillerySlayerRequested(Bool requested) { m_artillerySlayerRequested = requested; }
+	Bool takeArtillerySlayerRequest() { const Bool requested = m_artillerySlayerRequested; m_artillerySlayerRequested = FALSE; return requested; }
+	void requestArtillerySlayerReturn(const Coord3D *home) { m_artillerySlayerHome = *home; m_artillerySlayerReturnPending = TRUE; }
 	void friend_endingMove();
 
 	void friend_setPath(Path *newPath);
@@ -798,6 +805,9 @@ private:
 	Bool				m_movementComplete;					///< True if we finished an AIInternalMoveToState.
 	Bool				m_reverseMoveRequested;			///< Only set while a reverse-move order is being issued; not saved.
 	Bool				m_pilotAutoReturnPending;		///< A freshly ejected pilot that will head for safety once idle; not saved.
+	Bool				m_artillerySlayerRequested;		///< Only set while an artillery-slayer order is being issued; not saved.
+	Bool				m_artillerySlayerReturnPending;	///< An artillery slayer that will back up home once idle; not saved.
+	Coord3D			m_artillerySlayerHome;			///< Where the artillery-slayer order was given.
 	void startPilotAutoReturn();
 	Bool				m_isMoving;									///< True if we are in an AIInternalMoveToState.
 	Bool				m_isBlocked;

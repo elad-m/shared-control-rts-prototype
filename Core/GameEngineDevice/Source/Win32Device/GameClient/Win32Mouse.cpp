@@ -415,6 +415,8 @@ void Win32Mouse::initCursorResources()
 				// file is missing, show the move cursor rather than no cursor at all.
 				if (cursor == REVERSE_MOVETO && !cursorResources[cursor][direction])
 					cursorResources[cursor][direction] = cursorResources[MOVETO][0];
+				if (cursor == ARTILLERY_SLAYER && !cursorResources[cursor][direction])
+					cursorResources[cursor][direction] = cursorResources[ATTACKMOVETO][0];
 				DEBUG_ASSERTCRASH(cursorResources[cursor][direction], ("MissingCursor %s",resourcePath));
 			}
 		}

@@ -581,6 +581,12 @@ void Mouse::parseIni()
 		reverseMove->cursorName = "ReverseMoveTo";
 		reverseMove->textureName = "SCCReverseMove";
 	}
+	CursorInfo *artillerySlayer = &m_cursorInfo[ARTILLERY_SLAYER];
+	if (artillerySlayer->textureName.isEmpty())
+	{
+		artillerySlayer->cursorName = "ArtillerySlayer";
+		artillerySlayer->textureName = "SCCArtillerySlayer";
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1331,6 +1337,7 @@ Int Mouse::getCursorIndex(const AsciiString& name)
 		"Hack",
 		"ParticleUplinkCannon",
 		"ReverseMoveTo",
+		"ArtillerySlayer",
 
 	};
 

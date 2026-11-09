@@ -276,6 +276,7 @@ public:
 		MSG_META_TOGGLE_FAST_FORWARD_REPLAY,				///< Toggle the fast forward feature
 		MSG_META_TOGGLE_PAUSE,											///< TheSuperHackers @feature Toggle game pause
 		MSG_META_TOGGLE_PAUSE_ALT,									///< TheSuperHackers @feature Toggle game pause (alternative mapping)
+		MSG_META_ARTILLERY_SLAYER,									///< TheSuperHackers @feature Enter artillery-slayer targeting (Zero Hour)
 		MSG_META_STEP_FRAME,												///< TheSuperHackers @feature Step one frame
 		MSG_META_STEP_FRAME_ALT,										///< TheSuperHackers @feature Step one frame (alternative mapping)
 		MSG_META_DEMO_INSTANT_QUIT,									///< bail out of game immediately
@@ -578,6 +579,7 @@ public:
 		MSG_DO_ATTACKMOVETO,												///< location
 		MSG_DO_FORCEMOVETO,													///< location
 		MSG_DO_REVERSE_MOVETO,											///< location; treaded and wheeled vehicles back up to it
+		MSG_DO_ARTILLERY_SLAYER,										///< location; attack move that only stops for enemy artillery, then backs up home
 		MSG_ADD_WAYPOINT,														///< location
 		MSG_DO_GUARD_POSITION,											///< Guard with the currently selected group
 		MSG_DO_GUARD_OBJECT,												///< Guard with the currently selected group

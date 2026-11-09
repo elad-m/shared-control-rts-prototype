@@ -187,6 +187,7 @@ static const LookupListRec GameMessageMetaTypeNames[] =
 	{ "TOGGLE_FAST_FORWARD_REPLAY",								GameMessage::MSG_META_TOGGLE_FAST_FORWARD_REPLAY },
 	{ "TOGGLE_PAUSE",															GameMessage::MSG_META_TOGGLE_PAUSE },
 	{ "TOGGLE_PAUSE_ALT",													GameMessage::MSG_META_TOGGLE_PAUSE_ALT },
+	{ "ARTILLERY_SLAYER",													GameMessage::MSG_META_ARTILLERY_SLAYER },
 	{ "STEP_FRAME",																GameMessage::MSG_META_STEP_FRAME },
 	{ "STEP_FRAME_ALT",														GameMessage::MSG_META_STEP_FRAME_ALT },
 	{ "DEMO_INSTANT_QUIT",												GameMessage::MSG_META_DEMO_INSTANT_QUIT },
@@ -893,6 +894,19 @@ void MetaMap::generateMetaMap()
 			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
 		}
 	}
+#if RTS_ZEROHOUR
+	{
+		// TheSuperHackers @feature Artillery slayer. Y is only a command-bar hotkey on a few hackers.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_ARTILLERY_SLAYER);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_Y;
+			map->m_transition = DOWN;
+			map->m_modState = NONE;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+#endif
 	{
 		// Is useful for Generals and Zero Hour.
 		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_STEP_FRAME);

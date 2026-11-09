@@ -547,6 +547,20 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 			}
 			break;
 		}
+		// TheSuperHackers @feature Artillery slayer: an attack move that only stops for enemy artillery.
+		case GameMessage::MSG_DO_ARTILLERY_SLAYER:
+		{
+			if (currentlySelectedGroup)
+			{
+				Coord3D dest = msg->getArgument( 0 )->location;
+				currentlySelectedGroup->releaseWeaponLockForGroup(LOCKED_TEMPORARILY);	// release any temporary locks.
+				currentlySelectedGroup->setArtillerySlayerRequestedForGroup(TRUE);
+				currentlySelectedGroup->groupAttackMoveToPosition( &dest, NO_MAX_SHOTS_LIMIT, CMD_FROM_PLAYER );
+				// Drop the request on any member that did not start the attack move.
+				currentlySelectedGroup->setArtillerySlayerRequestedForGroup(FALSE);
+			}
+			break;
+		}
 #endif
 		// MSG_DO_SALVAGE is intentionally set up to mimic the moveto.
 		case GameMessage::MSG_DO_SALVAGE:

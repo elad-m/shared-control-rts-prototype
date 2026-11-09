@@ -33,6 +33,7 @@ $requiredFiles = @(
     (Join-Path $repositoryRoot 'SHOCKWAVE.md'),
     (Join-Path $repositoryRoot 'ESCALATED.md'),
     (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCArtillerySlayer.ani'),
     (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md'),
     (Join-Path $repositoryRoot 'LICENSE.md')
 )
@@ -79,6 +80,7 @@ Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE.md') -Destination $st
 # Cursors that are part of this build, not of the game data. The game looks for them beside the executable.
 New-Item -ItemType Directory -Path (Join-Path $stagingDirectory 'Cursors') | Out-Null
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani') -Destination (Join-Path $stagingDirectory 'Cursors')
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCArtillerySlayer.ani') -Destination (Join-Path $stagingDirectory 'Cursors')
 if (-not [string]::IsNullOrWhiteSpace($Direct3DWrapperPath)) {
     Copy-Item -LiteralPath $Direct3DWrapperPath -Destination (Join-Path $stagingDirectory 'd3d8.dll')
     Copy-Item -LiteralPath $Direct3DWrapperLicensePath -Destination (Join-Path $stagingDirectory 'd3d8to9-LICENSE.md')

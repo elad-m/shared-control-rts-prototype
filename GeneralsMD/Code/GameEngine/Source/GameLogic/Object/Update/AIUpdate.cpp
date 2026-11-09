@@ -275,6 +275,9 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_movementComplete = FALSE;
 	m_reverseMoveRequested = FALSE;
 	m_pilotAutoReturnPending = FALSE;
+	m_artillerySlayerRequested = FALSE;
+	m_artillerySlayerReturnPending = FALSE;
+	m_artillerySlayerHome.zero();
 	m_isMoving = FALSE;
 	m_isBlocked = FALSE;
 	m_isBlockedAndStuck = FALSE;
@@ -1199,6 +1202,24 @@ UpdateSleepTime AIUpdateInterface::update()
 		{
 			m_pilotAutoReturnPending = FALSE;
 			startPilotAutoReturn();
+			subMachineSleep = UPDATE_SLEEP_NONE;
+		}
+		else if (UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4) < subMachineSleep)
+			subMachineSleep = UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4);
+	}
+
+	// TheSuperHackers @feature Artillery slayer: the attack move is over, back up to where it started.
+	if (m_artillerySlayerReturnPending)
+	{
+		if (isAiInDeadState())
+			m_artillerySlayerReturnPending = FALSE;
+		else if (isIdle())
+		{
+			m_artillerySlayerReturnPending = FALSE;
+			const Coord3D home = m_artillerySlayerHome;
+			setReverseMoveRequested(TRUE);
+			aiMoveToPosition( &home, CMD_FROM_AI );
+			setReverseMoveRequested(FALSE);
 			subMachineSleep = UPDATE_SLEEP_NONE;
 		}
 		else if (UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4) < subMachineSleep)
@@ -2724,6 +2745,8 @@ void AIUpdateInterface::aiDoCommand(const AICommandParms* parms)
 
 	// TheSuperHackers @feature An order given to a freshly ejected pilot replaces its auto-return.
 	m_pilotAutoReturnPending = FALSE;
+	// TheSuperHackers @feature Likewise an order replaces an artillery slayer's trip home.
+	m_artillerySlayerReturnPending = FALSE;
 
 #ifdef ALLOW_SURRENDER
 	// surrendered items have very limited options, and only via AI cmds

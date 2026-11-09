@@ -589,6 +589,12 @@ protected:
 	StateMachine *m_attackMoveMachine;
 	UnsignedInt		m_frameToSleepUntil;
 	Int						m_retryCount;
+	// TheSuperHackers @feature Artillery slayer; not saved.
+	Bool					m_artillerySlayer;				///< Only stop for enemy artillery, then back up home.
+	Coord3D				m_artillerySlayerHome;		///< Where the order was given.
+	Coord3D				m_artillerySlayerChaseStart;	///< Where the current chase left the path.
+	UnsignedInt		m_artillerySlayerNextScan;	///< Next frame to look for artillery.
+	Object *findArtillerySlayerTarget();
 protected:
 	// snapshot interface
 	virtual void crc( Xfer *xfer ) override;

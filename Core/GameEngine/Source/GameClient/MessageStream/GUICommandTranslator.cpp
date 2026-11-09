@@ -280,8 +280,13 @@ static CommandStatus doAttackMoveCommand( const CommandButton *command, const IC
 	if( !TheTacticalView->screenToTerrain( mouse, &world ) )
 		return COMMAND_COMPLETE;
 
-	// send the message to set the rally point
-	GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_DO_ATTACKMOVETO );
+	// TheSuperHackers @feature Artillery slayer: this targeting was started with its key (Y).
+#if RTS_ZEROHOUR
+	const Bool artillerySlayer = TheInGameUI->isArtillerySlayerArmed();
+#else
+	const Bool artillerySlayer = FALSE;
+#endif
+	GameMessage *msg = TheMessageStream->appendMessage( artillerySlayer ? GameMessage::MSG_DO_ARTILLERY_SLAYER : GameMessage::MSG_DO_ATTACKMOVETO );
 	msg->appendLocationArgument( world );
 
 	// Play the unit voice response

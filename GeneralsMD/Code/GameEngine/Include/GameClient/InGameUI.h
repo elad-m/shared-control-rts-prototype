@@ -549,6 +549,10 @@ public:  // ********************************************************************
 	void toggleAttackMoveToMode()				{ m_attackMoveToMode = !m_attackMoveToMode; }
 	Bool isInAttackMoveToMode() const		{ return m_attackMoveToMode; }
 	void clearAttackMoveToMode()				{ m_attackMoveToMode = FALSE; }
+	// TheSuperHackers @feature Artillery slayer: the pending attack-move targeting came from its key.
+	// Any change of GUI command drops it.
+	void setArtillerySlayerArmed( Bool armed )	{ m_artillerySlayerArmed = armed; }
+	Bool isArtillerySlayerArmed() const		{ return m_artillerySlayerArmed; }
 
 	void setCameraRotateLeft( Bool set )		{ m_cameraRotatingLeft = set; }
 	void setCameraRotateRight( Bool set )		{ m_cameraRotatingRight = set; }
@@ -948,6 +952,7 @@ protected:
 	Bool												m_forceAttackMode;		///< are we in force attack mode?
 	Bool												m_forceMoveToMode;		///< are we in force move mode?
 	Bool												m_attackMoveToMode;	///< are we in attack move mode?
+	Bool												m_artillerySlayerArmed;	///< pending attack-move targeting is an artillery slayer
 	Bool												m_preferSelection;		///< the shift key has been depressed.
 
 	Bool												m_cameraRotatingLeft;

@@ -3519,6 +3519,10 @@ AIAttackMoveToState::AIAttackMoveToState( StateMachine *machine ) : AIMoveToStat
 	m_isMoveTo = false;
 	m_frameToSleepUntil = 0;
 	m_retryCount = ATTACK_RETRY_COUNT;
+	m_artillerySlayer = FALSE;
+	m_artillerySlayerHome.zero();
+	m_artillerySlayerChaseStart.zero();
+	m_artillerySlayerNextScan = 0;
 	m_attackMoveMachine = newInstance(AIAttackMoveStateMachine)(getMachineOwner(), "AIAttackMoveMachine");
 	m_attackMoveMachine->initDefaultState();
 }
@@ -3585,6 +3589,11 @@ StateReturnType AIAttackMoveToState::onEnter()
 	m_commandSrc = ai->getLastCommandSource();
 	m_retryCount = ATTACK_RETRY_COUNT;
 	m_frameToSleepUntil = 0;
+	// Always take the request, so it cannot linger and turn some later attack move into one.
+	m_artillerySlayer = ai->takeArtillerySlayerRequest();
+	m_artillerySlayerHome = *owner->getPosition();
+	m_artillerySlayerChaseStart = m_artillerySlayerHome;
+	m_artillerySlayerNextScan = 0;
 
 	return AIMoveToState::onEnter();
 }
@@ -3613,6 +3622,19 @@ StateReturnType AIAttackMoveToState::update()
 		return STATE_SUCCESS;
 	}
 
+	if (m_artillerySlayer && !m_attackMoveMachine->isInIdleState())
+	{
+		const Real chaseLimit = 2.0f * TheAI->getAdjustedVisionRangeForObject(owner, AI_VISIONFACTOR_OWNERTYPE | AI_VISIONFACTOR_MOOD);
+		const Real chasedSqr = sqr(owner->getPosition()->x - m_artillerySlayerChaseStart.x) + sqr(owner->getPosition()->y - m_artillerySlayerChaseStart.y);
+		if (chasedSqr > sqr(chaseLimit))
+		{
+			m_attackMoveMachine->setState( AI_IDLE );
+			forceRetargetThisFrame = true;
+			shouldRepathThisFrame = true;
+			ai->friend_setLastCommandSource(m_commandSrc);
+		}
+	}
+
 	if (!m_attackMoveMachine->isInIdleState())
 	{
 		ai->setLocomotorGoalNone();
@@ -3629,7 +3651,21 @@ StateReturnType AIAttackMoveToState::update()
 		}
 	}
 
-	if (m_attackMoveMachine->isInIdleState())
+	if (m_artillerySlayer && m_attackMoveMachine->isInIdleState())
+	{
+		Object *artillery = findArtillerySlayerTarget();
+		if (artillery != nullptr)
+		{
+			ai->friend_endingMove();
+			m_artillerySlayerChaseStart = *owner->getPosition();
+			m_attackMoveMachine->setGoalObject(artillery);
+			m_attackMoveMachine->setState( AI_ATTACK_OBJECT );
+			// Keep the player's command source: a human's auto-acquired target would not be chased.
+			ai->friend_setLastCommandSource(m_commandSrc);
+			return STATE_CONTINUE;
+		}
+	}
+	else if (m_attackMoveMachine->isInIdleState())
 	{
 
 		// Check to see if we have created a crate we need to pick up.
@@ -3683,7 +3719,77 @@ StateReturnType AIAttackMoveToState::update()
 		// Sleep 3 seconds.  We can attack during these frames, just not move.
 		m_frameToSleepUntil = TheGameLogic->getFrame() + 3*LOGICFRAMES_PER_SECOND;
 	}
+	if (ret != STATE_CONTINUE && m_artillerySlayer)
+	{
+		m_artillerySlayer = FALSE;
+		ai->requestArtillerySlayerReturn(&m_artillerySlayerHome);
+	}
 	return ret;
+}
+
+//----------------------------------------------------------------------------------------------------------
+/**
+ * TheSuperHackers @feature Artillery slayer. Artillery is any ground unit whose main weapon hits
+ * ground targets and either cannot fire up close (has a minimum range) or outranges tanks by far.
+ * The game has no artillery category, so this rule also covers mod units with no list to keep up.
+ */
+// TheSuperHackers @feature Artillery slayer: units the weapon rule below would wrongly count as artillery.
+static const char *const s_notArtillery[] =
+{
+	"GLAMobileAntiTankGun",			// range 275, but a direct-fire gun
+	"Slth_GLAMobileAntiTankGun",
+	"Chem_GLAMobileAntiTankGun",
+	"Tank_ChinaTankECM",				// long-range disabler
+};
+
+class PartitionFilterArtillery : public PartitionFilter
+{
+public:
+	virtual Bool allow(Object *objOther) override
+	{
+		const AsciiString &name = objOther->getTemplate()->getName();
+		for (Int i = 0; i < ARRAY_SIZE(s_notArtillery); ++i)
+			if (name.compareNoCase(s_notArtillery[i]) == 0)
+				return false;
+		if (objOther->isKindOf(KINDOF_STRUCTURE) || objOther->isKindOf(KINDOF_AIRCRAFT))
+			return false;
+		if (!objOther->isKindOf(KINDOF_VEHICLE))	// soldiers never count, even snipers and mortar troops
+			return false;
+		const Weapon *weapon = objOther->getWeaponInWeaponSlot(PRIMARY_WEAPON);
+		if (weapon == nullptr || (weapon->getAntiMask() & WEAPON_ANTI_GROUND) == 0)
+			return false;
+		const Real ARTILLERY_MIN_RANGE = 250.0f;		// tank guns reach about 150-175
+		const Real ARTILLERY_MIN_DEAD_ZONE = 50.0f;	// rocket infantry have a token minimum of 5-25
+		return weapon->getTemplate()->getMinimumAttackRange() >= ARTILLERY_MIN_DEAD_ZONE || weapon->getAttackRange(objOther) >= ARTILLERY_MIN_RANGE;
+	}
+#if defined(RTS_DEBUG)
+	virtual const char* debugGetName() override { return "PartitionFilterArtillery"; }
+#endif
+};
+
+//----------------------------------------------------------------------------------------------------------
+Object *AIAttackMoveToState::findArtillerySlayerTarget()
+{
+	const UnsignedInt now = TheGameLogic->getFrame();
+	if (now < m_artillerySlayerNextScan)
+		return nullptr;
+	m_artillerySlayerNextScan = now + LOGICFRAMES_PER_SECOND / 3;
+
+	Object *owner = getMachineOwner();
+	AIUpdateInterface *ai = owner->getAI();
+	// Artillery within sight of the path, not just within weapon range.
+	const Real range = TheAI->getAdjustedVisionRangeForObject(owner, AI_VISIONFACTOR_OWNERTYPE | AI_VISIONFACTOR_MOOD);
+	if (range <= 0.0f)
+		return nullptr;
+
+	UnsignedInt flags = AI::CAN_ATTACK;
+	if (TheAI->getAiData()->m_attackUsesLineOfSight && owner->isKindOf(KINDOF_ATTACK_NEEDS_LINE_OF_SIGHT))
+		flags |= AI::CAN_SEE;
+	if (owner->getControllingPlayer() && owner->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN)
+		flags |= AI::UNFOGGED;
+
+	PartitionFilterArtillery isArtillery;
+	return TheAI->findClosestEnemy(owner, range, flags, ai->getAttackInfo(), &isArtillery);
 }
 
 //----------------------------------------------------------------------------------------------------------

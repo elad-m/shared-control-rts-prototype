@@ -243,6 +243,7 @@ public:
 		HACK,
 		PARTICLE_UPLINK_CANNON,
 		REVERSE_MOVETO,				// TheSuperHackers @feature shown while the reverse-move key is held
+		ARTILLERY_SLAYER,			// TheSuperHackers @feature attack-move cursor of an artillery-slayer order
 
 
 		// ***** dont forget to update CursorININames[] *****

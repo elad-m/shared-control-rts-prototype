@@ -3422,6 +3422,32 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			TheInGameUI->toggleAttackMoveToMode();
 			break;
 
+#if RTS_ZEROHOUR
+		// TheSuperHackers @feature Artillery slayer: start attack-move targeting, marked as a slayer.
+		case GameMessage::MSG_META_ARTILLERY_SLAYER:
+		{
+			// Unlike attack move, the key toggles: pressing it again while armed leaves slayer targeting.
+			if (TheInGameUI->isArtillerySlayerArmed())
+			{
+				TheInGameUI->setGUICommand( nullptr );
+			}
+			else if (TheInGameUI->getSelectCount() > 0 && TheControlBar)
+			{
+				for (const CommandButton *button = TheControlBar->getCommandButtons(); button; button = button->getNext())
+				{
+					if (button->getCommandType() == GUI_COMMAND_ATTACK_MOVE)
+					{
+						TheInGameUI->setGUICommand( button );
+						TheInGameUI->setArtillerySlayerArmed( TRUE );
+						break;
+					}
+				}
+			}
+			disp = DESTROY_MESSAGE;
+			break;
+		}
+#endif
+
 		case GameMessage::MSG_META_BEGIN_CAMERA_ROTATE_LEFT:
 			DEBUG_ASSERTCRASH(!TheInGameUI->isCameraRotatingLeft(), ("Setting rotate camera left, but it's already set!"));
 			TheInGameUI->setCameraRotateLeft( true );
