@@ -283,14 +283,21 @@ static CommandStatus doAttackMoveCommand( const CommandButton *command, const IC
 	// TheSuperHackers @feature Artillery slayer: this targeting was started with its key (Y).
 #if RTS_ZEROHOUR
 	const Bool artillerySlayer = TheInGameUI->isArtillerySlayerArmed();
+	const Bool reverseMove = TheInGameUI->isReverseMoveArmed();	// TheSuperHackers @feature reverse-move button
 #else
 	const Bool artillerySlayer = FALSE;
+	const Bool reverseMove = FALSE;
 #endif
-	GameMessage *msg = TheMessageStream->appendMessage( artillerySlayer ? GameMessage::MSG_DO_ARTILLERY_SLAYER : GameMessage::MSG_DO_ATTACKMOVETO );
+	GameMessage::Type type = GameMessage::MSG_DO_ATTACKMOVETO;
+	if( reverseMove )
+		type = GameMessage::MSG_DO_REVERSE_MOVETO;
+	else if( artillerySlayer )
+		type = GameMessage::MSG_DO_ARTILLERY_SLAYER;
+	GameMessage *msg = TheMessageStream->appendMessage( type );
 	msg->appendLocationArgument( world );
 
 	// Play the unit voice response
-	pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), GameMessage::MSG_DO_ATTACKMOVETO);
+	pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), reverseMove ? GameMessage::MSG_DO_MOVETO : GameMessage::MSG_DO_ATTACKMOVETO);
 
 	return COMMAND_COMPLETE;
 

@@ -553,6 +553,8 @@ public:  // ********************************************************************
 	// Any change of GUI command drops it.
 	void setArtillerySlayerArmed( Bool armed )	{ m_artillerySlayerArmed = armed; }
 	Bool isArtillerySlayerArmed() const		{ return m_artillerySlayerArmed; }
+	void setReverseMoveArmed( Bool armed )	{ m_reverseMoveArmed = armed; }	///< TheSuperHackers @feature reverse-move button
+	Bool isReverseMoveArmed() const		{ return m_reverseMoveArmed; }
 
 	void setCameraRotateLeft( Bool set )		{ m_cameraRotatingLeft = set; }
 	void setCameraRotateRight( Bool set )		{ m_cameraRotatingRight = set; }
@@ -952,6 +954,7 @@ protected:
 	Bool												m_forceAttackMode;		///< are we in force attack mode?
 	Bool												m_forceMoveToMode;		///< are we in force move mode?
 	Bool												m_attackMoveToMode;	///< are we in attack move mode?
+	Bool												m_reverseMoveArmed;	///< pending attack-move targeting is a reverse move (button)
 	Bool												m_artillerySlayerArmed;	///< pending attack-move targeting is an artillery slayer
 	Bool												m_preferSelection;		///< the shift key has been depressed.
 

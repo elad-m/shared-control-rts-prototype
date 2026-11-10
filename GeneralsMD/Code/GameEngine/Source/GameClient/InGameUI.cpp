@@ -576,6 +576,8 @@ void InGameUI::setMouseCursor(Mouse::MouseCursor c)
 	// TheSuperHackers @feature Artillery slayer: its own red and black attack-move cursor.
 	if (c == Mouse::ATTACKMOVETO && m_artillerySlayerArmed)
 		c = Mouse::ARTILLERY_SLAYER;
+	else if (c == Mouse::ATTACKMOVETO && m_reverseMoveArmed)
+		c = Mouse::REVERSE_MOVETO;
 
 	TheMouse->setCursor(c);
 
@@ -1266,6 +1268,7 @@ InGameUI::InGameUI()
 	m_forceMoveToMode		= false;
 	m_attackMoveToMode	= false;
 	m_artillerySlayerArmed = false;
+	m_reverseMoveArmed = false;
 	m_preferSelection		= false;
 
 	m_curRcType = RADIUSCURSOR_NONE;
@@ -3216,6 +3219,7 @@ void InGameUI::setGUICommand( const CommandButton *command, ObjectID sourceObjec
 		return;
 
 	m_artillerySlayerArmed = false;
+	m_reverseMoveArmed = false;
 
 	// sanity
 	if( command )

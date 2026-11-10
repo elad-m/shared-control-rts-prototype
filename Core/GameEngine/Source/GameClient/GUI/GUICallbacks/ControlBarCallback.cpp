@@ -118,6 +118,8 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 #if RTS_ZEROHOUR
 						if (TheInGameUI->isArtillerySlayerArmed())
 							cur = Mouse::ARTILLERY_SLAYER;
+						else if (TheInGameUI->isReverseMoveArmed())
+							cur = Mouse::REVERSE_MOVETO;
 #endif
 					}
 					else
@@ -204,6 +206,8 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 #if RTS_ZEROHOUR
 							if (TheInGameUI->isArtillerySlayerArmed())
 								cur = Mouse::ARTILLERY_SLAYER;
+							else if (TheInGameUI->isReverseMoveArmed())
+								cur = Mouse::REVERSE_MOVETO;
 #endif
 						}
 						else
@@ -291,11 +295,19 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 				{
 					// Attack move has changed from a modifier to a command, so it moves up here.
 
-					GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_DO_ATTACKMOVETO );
+					// TheSuperHackers @feature A radar click keeps the armed artillery-slayer or reverse-move variant.
+					GameMessage::Type type = GameMessage::MSG_DO_ATTACKMOVETO;
+#if RTS_ZEROHOUR
+					if (TheInGameUI->isReverseMoveArmed())
+						type = GameMessage::MSG_DO_REVERSE_MOVETO;
+					else if (TheInGameUI->isArtillerySlayerArmed())
+						type = GameMessage::MSG_DO_ARTILLERY_SLAYER;
+#endif
+					GameMessage *msg = TheMessageStream->appendMessage( type );
 					msg->appendLocationArgument( world );
 
 					// Play the unit voice response
-					pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), GameMessage::MSG_DO_ATTACKMOVETO);
+					pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), type == GameMessage::MSG_DO_REVERSE_MOVETO ? GameMessage::MSG_DO_MOVETO : GameMessage::MSG_DO_ATTACKMOVETO);
 				}
 				else
 				{

@@ -34,6 +34,7 @@
 #include "Common/GameType.h"
 #include "Common/Overridable.h"
 #include "Common/Science.h"
+#include <map>
 #include "GameClient/Color.h"
 
 // FORWARD REFERENCES /////////////////////////////////////////////////////////////////////////////
@@ -214,6 +215,10 @@ enum GUICommandType CPP_11(: Int)
 
 	GUI_COMMAND_SELECT_ALL_UNITS_OF_TYPE,
 
+	GUI_COMMAND_REVERSE_MOVE,							///< TheSuperHackers @feature arm reverse move (same as Z), added by code, not INI
+	GUI_COMMAND_ARTILLERY_SLAYER,					///< TheSuperHackers @feature arm artillery slayer (same as Y), added by code, not INI
+	GUI_COMMAND_EXTRA_PAGE,								///< TheSuperHackers @feature flip a full panel to the page holding the extra buttons, and back
+
 	// add more commands here, don't forget to update the string command list below too ...
 
 	GUI_COMMAND_NUM_COMMANDS
@@ -267,6 +272,9 @@ static const char *const TheGuiCommandNames[] =
 	"SPECIAL_POWER_CONSTRUCT",
 	"SPECIAL_POWER_CONSTRUCT_FROM_SHORTCUT",
 	"SELECT_ALL_UNITS_OF_TYPE",
+	"REVERSE_MOVE",
+	"ARTILLERY_SLAYER",
+	"EXTRA_PAGE",
 
 	nullptr
 };
@@ -357,6 +365,11 @@ public:
 
 	void setButtonImage( const Image *image ) { m_buttonImage = image; }
 
+	// TheSuperHackers @feature Only for buttons the ControlBar builds in code (reverse move, artillery slayer).
+	void friend_setCommandType( GUICommandType type ) { m_command = type; }
+	void friend_setLabels( const AsciiString& text, const AsciiString& description ) { m_textLabel = text; m_descriptionLabel = description; }
+	void friend_copyLookFrom( const CommandButton *button ) { m_buttonImage = button->m_buttonImage; m_commandButtonBorder = button->m_commandButtonBorder; }
+
 	// bleah. shouldn't be const, but is. sue me. (srj)
 	void copyImagesFrom( const CommandButton *button, Bool markUIDirtyIfChanged ) const;
 
@@ -434,6 +447,8 @@ public:
 	CommandSet* friend_getNext() { return m_next; }
 	const FieldParse* friend_getFieldParse() const { return m_commandSetFieldParseTable; }
 	void friend_addToList(CommandSet** listHead);
+	void friend_setCommandButton(Int i, const CommandButton *button) { m_command[i] = button; }	///< TheSuperHackers @feature for code-built set copies
+	const CommandButton *friend_getRawCommandButton(Int i) const { return m_command[i]; }	///< without script overrides
 
 private:
 
@@ -695,6 +710,10 @@ public:
 
 	/// find existing command set
 	const CommandSet *findCommandSet( const AsciiString& name );
+
+	/** TheSuperHackers @feature The command set the panel shows for this object: its own set, plus the
+		* reverse-move and artillery-slayer buttons in free slots when it has an attack-move button. */
+	const CommandSet *findCommandSetForObject( const Object *obj );
 
 	void showPurchaseScience();
 	void hidePurchaseScience();
@@ -1024,6 +1043,20 @@ private:
 
 	/// find existing command set
 	CommandSet *findNonConstCommandSet( const AsciiString& name );
+
+	void createExtraMoveButtons();	///< TheSuperHackers @feature builds the reverse-move and artillery-slayer buttons
+	void clearExtraMoveSets();			///< TheSuperHackers @feature frees the cached set copies
+	Int getExtraSlotOrder( Int attackMoveSlot, Int *order ) const;	///< TheSuperHackers @feature preferred slots for the extra buttons
+	void addExtraMoveCommandsToMultiSelect();	///< TheSuperHackers @feature extra buttons on a multi-unit bar
+	const CommandButton *m_reverseMoveButton;
+	const CommandButton *m_artillerySlayerButton;
+	const CommandButton *m_extraPageMoreButton;
+	const CommandButton *m_extraPageBackButton;
+	Bool m_extraPageShown;					///< the selected unit's panel shows the extra page (reset on selection change)
+public:
+	void toggleExtraPage() { m_extraPageShown = !m_extraPageShown; markUIDirty(); }
+private:
+	std::map<std::pair<const CommandSet*, Int>, CommandSet*> m_extraMoveSets;	///< (set, with reverse?) -> copy with the extra buttons
 
 	const Image *m_genStarOn;
 	const Image *m_genStarOff;

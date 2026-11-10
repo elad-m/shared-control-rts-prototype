@@ -883,6 +883,11 @@ ControlBar::ControlBar()
 	Int i;
 	m_commandButtons = nullptr;
 	m_commandSets = nullptr;
+	m_reverseMoveButton = nullptr;
+	m_artillerySlayerButton = nullptr;
+	m_extraPageMoreButton = nullptr;
+	m_extraPageBackButton = nullptr;
+	m_extraPageShown = FALSE;
 	m_controlBarSchemeManager = nullptr;
 	m_isObserverCommandBar = FALSE;
 	m_observerLookAtPlayer = nullptr;
@@ -995,6 +1000,7 @@ ControlBar::ControlBar()
 //-------------------------------------------------------------------------------------------------
 ControlBar::~ControlBar()
 {
+	clearExtraMoveSets();
 
 	if(m_scienceLayout)
 	{
@@ -1088,6 +1094,7 @@ void ControlBar::init()
 
 	// post process step after loading the command buttons and command sets
 	postProcessCommands();
+	createExtraMoveButtons();
 
 	// Init the scheme manager, this will call its own INI init function.
 	m_controlBarSchemeManager = NEW ControlBarSchemeManager;
@@ -1324,6 +1331,7 @@ void ControlBar::init()
 //-------------------------------------------------------------------------------------------------
 void ControlBar::reset()
 {
+	clearExtraMoveSets();
 	hideSpecialPowerShortcut();
 	// do not destroy the rally drawable, it will get destroyed with everything else during a reset
 	m_rallyPointDrawableID = INVALID_DRAWABLE_ID;
@@ -1654,6 +1662,7 @@ void ControlBar::onDrawableSelected( Drawable *draw )
 	// cancel any pending GUI commands
 	TheInGameUI->setGUICommand( nullptr );
 
+	m_extraPageShown = FALSE;	// TheSuperHackers @feature a new selection starts on the first page
 
 }
 
@@ -2100,6 +2109,304 @@ const CommandSet *ControlBar::findCommandSet( const AsciiString& name )
 }
 
 //-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature Reverse-move and artillery-slayer buttons. No INI defines them: they are
+	* built here and put into free slots of any command set that has an attack-move button, so every
+	* mod (Zero Hour, ShockWave, Escalated) gets them without its own data files. */
+//-------------------------------------------------------------------------------------------------
+void ControlBar::createExtraMoveButtons()
+{
+#if RTS_ZEROHOUR
+	if( m_artillerySlayerButton )
+		return;
+
+	const CommandButton *attackMove = nullptr;
+	const CommandButton *stop = nullptr;
+	for( const CommandButton *button = m_commandButtons; button; button = button->getNext() )
+	{
+		if( button->getCommandType() == GUI_COMMAND_ATTACK_MOVE && button->getButtonImage() && attackMove == nullptr )
+			attackMove = button;
+		if( button->getCommandType() == GUI_COMMAND_STOP && button->getButtonImage() && stop == nullptr )
+			stop = button;
+	}
+	if( attackMove == nullptr )
+		return;
+	if( stop == nullptr )
+		stop = attackMove;
+
+	// Placeholder look: the attack-move icon, told apart by the frame colour (see setControlCommand).
+	// Tooltips come from fixed text (see ControlBarPopupDescription).
+	CommandButton *slayer = newCommandButton( "SCCommand_ArtillerySlayer" );
+	slayer->friend_setCommandType( GUI_COMMAND_ARTILLERY_SLAYER );
+	slayer->friend_setLabels( "CONTROLBAR:SCArtillerySlayer", "CONTROLBAR:TooltipSCArtillerySlayer" );
+	slayer->friend_copyLookFrom( attackMove );
+	m_artillerySlayerButton = slayer;
+
+	CommandButton *reverse = newCommandButton( "SCCommand_ReverseMove" );
+	reverse->friend_setCommandType( GUI_COMMAND_REVERSE_MOVE );
+	reverse->friend_setLabels( "CONTROLBAR:SCReverseMove", "CONTROLBAR:TooltipSCReverseMove" );
+	reverse->friend_copyLookFrom( attackMove );
+	m_reverseMoveButton = reverse;
+
+	CommandButton *more = newCommandButton( "SCCommand_ExtraPageMore" );
+	more->friend_setCommandType( GUI_COMMAND_EXTRA_PAGE );
+	more->friend_setLabels( "CONTROLBAR:SCExtraPageMore", "CONTROLBAR:TooltipSCExtraPageMore" );
+	more->friend_copyLookFrom( stop );
+	m_extraPageMoreButton = more;
+
+	CommandButton *back = newCommandButton( "SCCommand_ExtraPageBack" );
+	back->friend_setCommandType( GUI_COMMAND_EXTRA_PAGE );
+	back->friend_setLabels( "CONTROLBAR:SCExtraPageBack", "CONTROLBAR:TooltipSCExtraPageBack" );
+	back->friend_copyLookFrom( stop );
+	m_extraPageBackButton = back;
+
+	// Their own icons, shipped beside the exe in Art\Textures (scripts/make-*-button.py, make-page-buttons.py).
+	// Each is a 60x48 button drawn at 4x (240x192) in a 256x256 texture so it stays sharp on large screens.
+	// More and Back prefer the mod's own page buttons when it has them (ShockWave's China Dozer
+	// "One Down" / "One Up"). Without any image a button keeps the look it copied above.
+	struct { CommandButton *button; const char *modImage; const char *file; const char *image; } icons[] =
+	{
+		{ slayer, nullptr, "SCArtillerySlayer.tga", "SCArtillerySlayerButton" },
+		{ reverse, nullptr, "SCReverseMove.tga", "SCReverseMoveButton" },
+		{ more, "SSChinaCommandSetDown", "SCPageMore.tga", "SCPageMoreButton" },
+		{ back, "SSChinaCommandSetUp", "SCPageBack.tga", "SCPageBackButton" },
+	};
+	for( Int n = 0; n < ARRAY_SIZE( icons ); ++n )
+	{
+		if( !TheMappedImageCollection )
+			break;
+		if( icons[ n ].modImage )
+		{
+			const Image *modImage = TheMappedImageCollection->findImageByName( icons[ n ].modImage );
+			if( modImage )
+			{
+				icons[ n ].button->setButtonImage( modImage );
+				continue;
+			}
+		}
+		AsciiString path;
+		path.format( "Art\\Textures\\%s", icons[ n ].file );
+		if( !TheFileSystem || !TheFileSystem->doesFileExist( path.str() ) )
+			continue;
+		Image *image = newInstance(Image);
+		image->setName( icons[ n ].image );
+		image->setFilename( icons[ n ].file );
+		Region2D uv;
+		uv.lo.x = 0.0f;
+		uv.lo.y = 0.0f;
+		uv.hi.x = 240.0f / 256.0f;
+		uv.hi.y = 192.0f / 256.0f;
+		image->setUV( &uv );
+		image->setTextureWidth( 256 );
+		image->setTextureHeight( 256 );
+		ICoord2D size;
+		size.x = 60;
+		size.y = 48;
+		image->setImageSize( &size );
+		TheMappedImageCollection->addImage( image );
+		icons[ n ].button->setButtonImage( image );
+	}
+#endif
+}
+
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature Where the extra buttons may go, best first. The bar is two rows of seven:
+	* build and ability buttons on top (slots 0-6), orders on the bottom (7-13, attack move usually 10).
+	* So: the bottom row nearest the attack-move button (right side first on a tie), then the top row
+	* from its right end. Only slots the bar actually shows are listed. Returns how many. */
+//-------------------------------------------------------------------------------------------------
+Int ControlBar::getExtraSlotOrder( Int attackMoveSlot, Int *order ) const
+{
+	enum { ROW = 7, UI_SLOTS = 14 };
+	Int count = 0;
+	const Int rowStart = attackMoveSlot >= ROW ? ROW : 0;
+	for( Int dist = 1; dist < ROW; dist++ )
+	{
+		const Int candidates[ 2 ] = { attackMoveSlot + dist, attackMoveSlot - dist };
+		for( Int c = 0; c < 2; c++ )
+		{
+			const Int slot = candidates[ c ];
+			if( slot >= rowStart && slot < rowStart + ROW && m_commandWindows[ slot ] != nullptr )
+				order[ count++ ] = slot;
+		}
+	}
+	const Int otherStart = rowStart == ROW ? 0 : ROW;
+	for( Int slot = otherStart + ROW - 1; slot >= otherStart; slot-- )
+		if( m_commandWindows[ slot ] != nullptr )
+			order[ count++ ] = slot;
+	(void)UI_SLOTS;
+	return count;
+}
+
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature Several units selected: the common-command logic only keeps buttons that
+	* sit in the same slot for everyone, so the extra buttons are added afterwards, once, into free slots
+	* of the shared bar: the slayer when the attack-move button is shown, reverse move when every
+	* selected unit is a ground vehicle. No More page here; what does not fit is left out (Y / Z still work). */
+//-------------------------------------------------------------------------------------------------
+void ControlBar::addExtraMoveCommandsToMultiSelect()
+{
+#if RTS_ZEROHOUR
+	if( m_artillerySlayerButton == nullptr )
+		return;
+	enum { UI_SLOTS = 14 };
+	Int attackMoveSlot = -1;
+	for( Int i = 0; i < UI_SLOTS && attackMoveSlot < 0; i++ )
+		if( m_commonCommands[ i ] && m_commonCommands[ i ]->getCommandType() == GUI_COMMAND_ATTACK_MOVE )
+			attackMoveSlot = i;
+	if( attackMoveSlot < 0 )
+		return;
+
+	Bool allGroundVehicles = TRUE;
+	const DrawableList *selected = TheInGameUI->getAllSelectedDrawables();
+	for( DrawableListCIt it = selected->begin(); it != selected->end(); ++it )
+	{
+		const Object *obj = (*it)->getObject();
+		if( obj == nullptr || obj->isKindOf( KINDOF_IGNORED_IN_GUI ) )
+			continue;
+		if( !obj->isKindOf( KINDOF_VEHICLE ) || obj->isKindOf( KINDOF_AIRCRAFT ) )
+			allGroundVehicles = FALSE;
+	}
+
+	const CommandButton *extra[ 2 ] = { m_artillerySlayerButton, allGroundVehicles ? m_reverseMoveButton : nullptr };
+	Int order[ UI_SLOTS ];
+	const Int orderCount = getExtraSlotOrder( attackMoveSlot, order );
+	Int next = 0;
+	for( Int k = 0; k < orderCount && next < 2; k++ )
+	{
+		if( extra[ next ] == nullptr )
+			break;
+		const Int slot = order[ k ];
+		if( m_commonCommands[ slot ] != nullptr )
+			continue;
+		m_commonCommands[ slot ] = extra[ next++ ];
+		m_commandWindows[ slot ]->winHide( FALSE );
+		m_commandWindows[ slot ]->winEnable( TRUE );
+		setControlCommand( m_commandWindows[ slot ], m_commonCommands[ slot ] );
+	}
+#endif
+}
+
+//-------------------------------------------------------------------------------------------------
+void ControlBar::clearExtraMoveSets()
+{
+	for( std::map<std::pair<const CommandSet*, Int>, CommandSet*>::iterator it = m_extraMoveSets.begin(); it != m_extraMoveSets.end(); ++it )
+		deleteInstance( it->second );
+	m_extraMoveSets.clear();
+	m_extraPageShown = FALSE;
+}
+
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature The panel for an object: its own set plus the artillery-slayer button (any
+	* unit with attack move) and the reverse-move button (ground vehicles). When the panel lacks room, a
+	* More button flips to a second page that holds them, the button More displaced, and Back. */
+//-------------------------------------------------------------------------------------------------
+const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
+{
+	if( obj == nullptr )
+		return nullptr;
+	const CommandSet *set = findCommandSet( obj->getCommandSetString() );
+#if RTS_ZEROHOUR
+	if( set == nullptr || m_artillerySlayerButton == nullptr || obj->isKindOf( KINDOF_STRUCTURE ) )
+		return set;
+
+	enum { UI_SLOTS = 14 };	// the command bar shows 14 buttons
+	Int attackMoveSlot = -1;
+	for( Int i = 0; i < UI_SLOTS; i++ )
+	{
+		const CommandButton *button = set->getCommandButton( i );
+		if( button && button->getCommandType() == GUI_COMMAND_ATTACK_MOVE )
+		{
+			attackMoveSlot = i;
+			break;
+		}
+	}
+	if( attackMoveSlot < 0 )
+		return set;
+
+	const Bool withReverse = obj->isKindOf( KINDOF_VEHICLE ) && !obj->isKindOf( KINDOF_AIRCRAFT );
+	const CommandButton *extra[ 2 ] = { m_artillerySlayerButton, m_reverseMoveButton };
+	const Int extraCount = withReverse ? 2 : 1;
+
+	Int order[ UI_SLOTS ];
+	const Int orderCount = getExtraSlotOrder( attackMoveSlot, order );
+	Int freeCount = 0;
+	for( Int k = 0; k < orderCount; k++ )
+		if( set->getCommandButton( order[ k ] ) == nullptr )
+			freeCount++;
+
+	const Bool fits = freeCount >= extraCount;
+	const Bool page2 = !fits && m_extraPageShown;
+	const std::pair<const CommandSet*, Int> key( set, ( withReverse ? 1 : 0 ) | ( fits ? 0 : ( page2 ? 4 : 2 ) ) );
+	std::map<std::pair<const CommandSet*, Int>, CommandSet*>::iterator found = m_extraMoveSets.find( key );
+	if( found != m_extraMoveSets.end() )
+		return found->second;
+
+	// Same name, so script overrides by set name still apply to the copy.
+	CommandSet *copy = newInstance(CommandSet)( set->getName() );
+	for( Int i = 0; i < MAX_COMMANDS_PER_SET; i++ )
+		copy->friend_setCommandButton( i, set->friend_getRawCommandButton( i ) );
+
+	if( fits )
+	{
+		Int next = 0;
+		for( Int k = 0; k < orderCount && next < extraCount; k++ )
+			if( set->getCommandButton( order[ k ] ) == nullptr )
+				copy->friend_setCommandButton( order[ k ], extra[ next++ ] );
+	}
+	else
+	{
+		// The More/Back slot: the first free one, else the last button on the bar (never attack move).
+		Int pageSlot = -1;
+		for( Int k = 0; k < orderCount && pageSlot < 0; k++ )
+			if( set->getCommandButton( order[ k ] ) == nullptr )
+				pageSlot = order[ k ];
+		for( Int i = UI_SLOTS - 1; i >= 0 && pageSlot < 0; i-- )
+			if( i != attackMoveSlot && m_commandWindows[ i ] != nullptr && set->getCommandButton( i ) != nullptr )
+				pageSlot = i;
+		const CommandButton *displaced = pageSlot >= 0 ? set->getCommandButton( pageSlot ) : nullptr;
+
+		if( !page2 )
+		{
+			if( pageSlot >= 0 )
+				copy->friend_setCommandButton( pageSlot, m_extraPageMoreButton );
+		}
+		else
+		{
+			// Second page: only the extra buttons, the displaced one, and Back where More was.
+			for( Int i = 0; i < MAX_COMMANDS_PER_SET; i++ )
+				copy->friend_setCommandButton( i, nullptr );
+			if( pageSlot >= 0 )
+				copy->friend_setCommandButton( pageSlot, m_extraPageBackButton );
+			const CommandButton *items[ 3 ] = { m_artillerySlayerButton, withReverse ? m_reverseMoveButton : nullptr, displaced };
+			Int k = 0;
+			for( Int n = 0; n < 3; n++ )
+			{
+				if( items[ n ] == nullptr )
+					continue;
+				Int slot = -1;
+				while( k < UI_SLOTS )
+				{
+					const Int candidate = ( attackMoveSlot + k++ ) % UI_SLOTS;
+					if( candidate != pageSlot && m_commandWindows[ candidate ] != nullptr )
+					{
+						slot = candidate;
+						break;
+					}
+				}
+				if( slot >= 0 )
+					copy->friend_setCommandButton( slot, items[ n ] );
+			}
+		}
+	}
+
+	m_extraMoveSets[ key ] = copy;
+	return copy;
+#else
+	return set;
+#endif
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Allocate a new command set, link to list, initialize to default, and return it */
 //-------------------------------------------------------------------------------------------------
 CommandSet *ControlBar::newCommandSet( const AsciiString& name )
@@ -2539,6 +2846,11 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 	//button->winSetUserData( commandButton );
 
 	setCommandBarBorder(button, commandButton->getCommandButtonMappedBorderType());
+	// TheSuperHackers @feature Frames tell the code-built buttons apart from attack move.
+	if( commandButton->getCommandType() == GUI_COMMAND_ARTILLERY_SLAYER )
+		GadgetButtonSetBorder(button, GameMakeColor(0, 0, 0, 255));
+	else if( commandButton->getCommandType() == GUI_COMMAND_REVERSE_MOVE )
+		GadgetButtonSetBorder(button, GameMakeColor(255, 255, 255, 255));
 
 	if (TheHotKeyManager)
 	{

@@ -3641,6 +3641,25 @@ StateReturnType AIAttackMoveToState::update()
 		owner->clearModelConditionState(MODELCONDITION_MOVING);
 		m_attackMoveMachine->updateStateMachine();
 
+		// TheSuperHackers @feature Artillery slayer: keep driving in on the artillery while firing, down to
+		// our own minimum range, instead of trading shots from the edge of our weapon's reach.
+		if (m_artillerySlayer && !m_attackMoveMachine->isInIdleState() && !owner->isKindOf(KINDOF_AIRCRAFT))
+		{
+			Object *victim = m_attackMoveMachine->getGoalObject();
+			const Weapon *weapon = owner->getCurrentWeapon();
+			if (victim && !victim->isEffectivelyDead() && weapon && weapon->isWithinAttackRange(owner, victim))
+			{
+				const Real closeEnough = max(weapon->getTemplate()->getMinimumAttackRange() + 10.0f, 25.0f)
+					+ owner->getGeometryInfo().getBoundingCircleRadius() + victim->getGeometryInfo().getBoundingCircleRadius();
+				const Real distSqr = sqr(owner->getPosition()->x - victim->getPosition()->x) + sqr(owner->getPosition()->y - victim->getPosition()->y);
+				if (distSqr > sqr(closeEnough))
+				{
+					ai->setLocomotorGoalPositionExplicit(*victim->getPosition());
+					owner->setModelConditionState(MODELCONDITION_MOVING);
+				}
+			}
+		}
+
 		// if the machine is now idling, then we need to attempt to get a new target
 		if (m_attackMoveMachine->isInIdleState()) {
 			forceRetargetThisFrame = true;
@@ -3706,10 +3725,14 @@ StateReturnType AIAttackMoveToState::update()
 
 	StateReturnType ret = AIMoveToState::update();
 	if (ret != STATE_CONTINUE) {
-		if (m_retryCount<1) return ret;
-		/* check for close enough. */
+		// TheSuperHackers @bugfix Artillery slayer: arriving (or giving up) must also start the trip home.
 		Real distSqr = sqr(owner->getPosition()->x - m_pathGoalPosition.x) + sqr(owner->getPosition()->y-m_pathGoalPosition.y);
-		if (distSqr < sqr(ATTACK_CLOSE_ENOUGH_CELLS*PATHFIND_CELL_SIZE_F)) {
+		if (m_retryCount<1 || distSqr < sqr(ATTACK_CLOSE_ENOUGH_CELLS*PATHFIND_CELL_SIZE_F)) {
+			if (m_artillerySlayer)
+			{
+				m_artillerySlayer = FALSE;
+				ai->requestArtillerySlayerReturn(&m_artillerySlayerHome);
+			}
 			return ret;
 		}
 		DEBUG_LOG(("AIAttackMoveToState::update Distance from goal %f, retrying.", sqrt(distSqr)));

@@ -79,6 +79,7 @@ void ControlBar::addCommonCommands( Drawable *draw, Bool firstDrawable )
 		return;
 
 	// get the command set of this drawable
+	// The unit's own set: the extra buttons sit in different slots per unit, so they are added once at the end.
 	const CommandSet *commandSet = findCommandSet( obj->getCommandSetString() );
 	if( commandSet == nullptr )
 	{
@@ -283,6 +284,9 @@ void ControlBar::populateMultiSelect()
 		}
 
 	}
+
+	// TheSuperHackers @feature artillery slayer and reverse move for the whole group
+	addExtraMoveCommandsToMultiSelect();
 
 	// set the portrait image
 	setPortraitByObject( portraitObj );

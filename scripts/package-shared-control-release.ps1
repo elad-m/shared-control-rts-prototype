@@ -34,6 +34,10 @@ $requiredFiles = @(
     (Join-Path $repositoryRoot 'ESCALATED.md'),
     (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani'),
     (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCArtillerySlayer.ani'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCReverseMove.tga'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCArtillerySlayer.tga'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageMore.tga'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageBack.tga'),
     (Join-Path $repositoryRoot 'MODIFICATION_NOTICE.md'),
     (Join-Path $repositoryRoot 'LICENSE.md')
 )
@@ -81,6 +85,12 @@ Copy-Item -LiteralPath (Join-Path $repositoryRoot 'LICENSE.md') -Destination $st
 New-Item -ItemType Directory -Path (Join-Path $stagingDirectory 'Cursors') | Out-Null
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCReverseMove.ani') -Destination (Join-Path $stagingDirectory 'Cursors')
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCArtillerySlayer.ani') -Destination (Join-Path $stagingDirectory 'Cursors')
+# Command-bar button images built by scripts/make-*-button.py; the game finds loose textures in Art\Textures.
+New-Item -ItemType Directory -Path (Join-Path $stagingDirectory 'Art\Textures') | Out-Null
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCReverseMove.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCArtillerySlayer.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageMore.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageBack.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
 if (-not [string]::IsNullOrWhiteSpace($Direct3DWrapperPath)) {
     Copy-Item -LiteralPath $Direct3DWrapperPath -Destination (Join-Path $stagingDirectory 'd3d8.dll')
     Copy-Item -LiteralPath $Direct3DWrapperLicensePath -Destination (Join-Path $stagingDirectory 'd3d8to9-LICENSE.md')

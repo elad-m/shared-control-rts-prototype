@@ -639,6 +639,38 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			TheMessageStream->appendMessage(GameMessage::MSG_META_TOGGLE_ATTACKMOVE);
 			break;
 
+#if RTS_ZEROHOUR
+		// TheSuperHackers @feature Same as the Y key: arms (or cancels) artillery-slayer targeting.
+		// TheSuperHackers @feature More/Back on a full panel: flip to the page with the extra buttons.
+		case GUI_COMMAND_EXTRA_PAGE:
+			TheControlBar->toggleExtraPage();
+			break;
+
+		case GUI_COMMAND_ARTILLERY_SLAYER:
+			TheMessageStream->appendMessage(GameMessage::MSG_META_ARTILLERY_SLAYER);
+			break;
+
+		// TheSuperHackers @feature Arms (or cancels) reverse-move targeting; the next click backs the units up there.
+		case GUI_COMMAND_REVERSE_MOVE:
+			if (TheInGameUI->isReverseMoveArmed())
+			{
+				TheInGameUI->setGUICommand(nullptr);
+			}
+			else
+			{
+				for (const CommandButton *button = TheControlBar->getCommandButtons(); button; button = button->getNext())
+				{
+					if (button->getCommandType() == GUI_COMMAND_ATTACK_MOVE)
+					{
+						TheInGameUI->setGUICommand(button);
+						TheInGameUI->setReverseMoveArmed(TRUE);
+						break;
+					}
+				}
+			}
+			break;
+#endif
+
 		//---------------------------------------------------------------------------------------------
 		case GUI_COMMAND_STOP:
 		{

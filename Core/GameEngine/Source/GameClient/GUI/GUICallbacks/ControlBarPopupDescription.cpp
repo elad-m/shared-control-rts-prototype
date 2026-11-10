@@ -310,6 +310,17 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 
 		if( commandButton->getDescriptionLabel().isNotEmpty() )
 		{
+			// TheSuperHackers @feature The code-built buttons have no game-text entries; use fixed text.
+			if( commandButton->getCommandType() == GUI_COMMAND_ARTILLERY_SLAYER )
+				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
+					L"Attack-move that only stops to destroy enemy artillery, then backs up to where the order was given. Same as the Y key. Press again to cancel.");
+			else if( commandButton->getCommandType() == GUI_COMMAND_REVERSE_MOVE )
+				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
+					L"Drive backwards to the clicked spot. Same as holding Z while ordering a move. Press again to cancel.");
+			else if( commandButton->getCommandType() == GUI_COMMAND_EXTRA_PAGE )
+				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
+					L"Switch between this unit's buttons and the extra page (Artillery Slayer, Reverse Move).");
+			else
 			descrip = TheGameText->fetch(commandButton->getDescriptionLabel());
 
 			Drawable *draw = TheInGameUI->getFirstSelectedDrawable();
@@ -403,6 +414,14 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 
 		}
 
+		if( commandButton->getCommandType() == GUI_COMMAND_ARTILLERY_SLAYER )
+			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Artillery Slayer (Y)");
+		else if( commandButton->getCommandType() == GUI_COMMAND_REVERSE_MOVE )
+			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Reverse Move (Z)");
+		else if( commandButton->getCommandType() == GUI_COMMAND_EXTRA_PAGE )
+			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(),
+				commandButton->getTextLabel() == "CONTROLBAR:SCExtraPageBack" ? L"Back" : L"More");
+		else
 		name = TheGameText->fetch(commandButton->getTextLabel().str());
 
 		if( thingTemplate && commandButton->getCommandType() != GUI_COMMAND_PURCHASE_SCIENCE )
