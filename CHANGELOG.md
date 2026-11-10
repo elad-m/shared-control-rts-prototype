@@ -8,6 +8,20 @@ title shows which one is running. Downloads:
 Setup guides: [SHOCKWAVE.md](SHOCKWAVE.md), [ESCALATED.md](ESCALATED.md),
 [SHARED_CONTROL.md](SHARED_CONTROL.md).
 
+## 0.8.0
+
+- **Command bar buttons** for Artillery Slayer and Reverse Move, next to
+  Attack Move on every unit that has it (Reverse Move only for ground
+  vehicles). They work like Y and Z: click the button, then the ground or
+  the minimap; click it again to cancel. Groups of mixed units get them too.
+- **More / Back page** when a unit's command bar is full (for example an
+  upgraded Humvee). ShockWave uses its own One Down / One Up buttons for it.
+- Artillery slayers now really drive back home in reverse once they reach
+  the destination (in 0.7.0 they stayed there), and they keep closing in on
+  the artillery while firing instead of stopping at the edge of their range.
+- A slayer order given on the minimap stays a slayer order.
+- The window title reads **Shared Control 0.8.0**.
+
 ## 0.7.0
 
 - **Artillery slayer** (Zero Hour, ShockWave, Escalated). Select units, press

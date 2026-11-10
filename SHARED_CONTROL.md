@@ -31,6 +31,10 @@ in reverse to where the order was given. Press Y again to cancel. See
 [CHANGELOG.md](CHANGELOG.md) for what counts as artillery and for what each
 release adds.
 
+Both orders also have buttons next to Attack Move on the unit's command bar
+(Reverse Move only for ground vehicles). When the bar is full, a More button
+opens a second page with them.
+
 Players can transfer $500, $1,000, or $5,000 from their own wallet to an
 active ally through the Diplomacy screen.
 
