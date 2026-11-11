@@ -8,6 +8,18 @@ title shows which one is running. Downloads:
 Setup guides: [SHOCKWAVE.md](SHOCKWAVE.md), [ESCALATED.md](ESCALATED.md),
 [SHARED_CONTROL.md](SHARED_CONTROL.md).
 
+## 0.8.1
+
+- **General Powers tabs**: a grey **All** tab comes first and is selected by
+  default; it shows everyone's powers as the game normally does. The player
+  tabs (now one letter each; hover for the full name) narrow the column to
+  one player. After you use an ally's power from that ally's tab, the
+  column goes back to All.
+- **Artillery slayer**: artillery units on a slayer order now fire from as
+  far as they can instead of driving in to their minimum range. Tanks and
+  other vehicles still close in while firing.
+- The window title reads **Shared Control 0.8.1**.
+
 ## 0.8.0
 
 - **Command bar buttons** for Artillery Slayer and Reverse Move, next to
