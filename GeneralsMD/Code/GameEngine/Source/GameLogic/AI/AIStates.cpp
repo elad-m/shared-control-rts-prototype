@@ -3579,6 +3579,8 @@ AsciiString AIAttackMoveToState::getName(  ) const
 }
 #endif
 
+static Bool isArtilleryUnit(const Object *obj);	// TheSuperHackers @feature artillery slayer rule, below
+
 //----------------------------------------------------------------------------------------------------------
 StateReturnType AIAttackMoveToState::onEnter()
 {
@@ -3642,8 +3644,10 @@ StateReturnType AIAttackMoveToState::update()
 		m_attackMoveMachine->updateStateMachine();
 
 		// TheSuperHackers @feature Artillery slayer: keep driving in on the artillery while firing, down to
-		// our own minimum range, instead of trading shots from the edge of our weapon's reach.
-		if (m_artillerySlayer && !m_attackMoveMachine->isInIdleState() && !owner->isKindOf(KINDOF_AIRCRAFT))
+		// our own minimum range, instead of trading shots from the edge of our weapon's reach. Our own
+		// artillery does not: it fires from where it first can, as early as possible.
+		if (m_artillerySlayer && !m_attackMoveMachine->isInIdleState() && !owner->isKindOf(KINDOF_AIRCRAFT)
+				&& !isArtilleryUnit(owner))
 		{
 			Object *victim = m_attackMoveMachine->getGoalObject();
 			const Weapon *weapon = owner->getCurrentWeapon();
@@ -3765,11 +3769,8 @@ static const char *const s_notArtillery[] =
 	"Tank_ChinaTankECM",				// long-range disabler
 };
 
-class PartitionFilterArtillery : public PartitionFilter
+static Bool isArtilleryUnit(const Object *objOther)
 {
-public:
-	virtual Bool allow(Object *objOther) override
-	{
 		const AsciiString &name = objOther->getTemplate()->getName();
 		for (Int i = 0; i < ARRAY_SIZE(s_notArtillery); ++i)
 			if (name.compareNoCase(s_notArtillery[i]) == 0)
@@ -3784,6 +3785,14 @@ public:
 		const Real ARTILLERY_MIN_RANGE = 250.0f;		// tank guns reach about 150-175
 		const Real ARTILLERY_MIN_DEAD_ZONE = 50.0f;	// rocket infantry have a token minimum of 5-25
 		return weapon->getTemplate()->getMinimumAttackRange() >= ARTILLERY_MIN_DEAD_ZONE || weapon->getAttackRange(objOther) >= ARTILLERY_MIN_RANGE;
+}
+
+class PartitionFilterArtillery : public PartitionFilter
+{
+public:
+	virtual Bool allow(Object *objOther) override
+	{
+		return isArtilleryUnit(objOther);
 	}
 #if defined(RTS_DEBUG)
 	virtual const char* debugGetName() override { return "PartitionFilterArtillery"; }

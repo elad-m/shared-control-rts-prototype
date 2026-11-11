@@ -957,7 +957,8 @@ protected:
 	enum { MAX_SPECIAL_POWER_TABS = 8 };
 	GameWindow *m_specialPowerTabs[ MAX_SPECIAL_POWER_TABS ];
 	Int m_specialPowerTabPlayerIndices[ MAX_SPECIAL_POWER_TABS ];	///< -1 for an unused tab
-	Int m_specialPowerShownPlayerIndex;		///< whose powers the column shows; -1 means the local player
+	Int m_specialPowerShownPlayerIndex;		///< whose powers the column shows: SPECIAL_POWER_SHOW_ALL (default), -1 the local player, else an ally
+	enum { SPECIAL_POWER_SHOW_ALL = -2 };	///< everyone's powers, as the column normally shows them
 	Bool m_specialPowerSnapBackPending;		///< show the local player's powers again on the next update
 	void createSpecialPowerTabs();
 	void layoutSpecialPowerTabs( Player *const *players, Int playerCount, Int usedButtons );
