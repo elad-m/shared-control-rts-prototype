@@ -120,6 +120,8 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 							cur = Mouse::ARTILLERY_SLAYER;
 						else if (TheInGameUI->isReverseMoveArmed())
 							cur = Mouse::REVERSE_MOVETO;
+						else if (TheInGameUI->isRunOverArmed())
+							cur = Mouse::RUN_OVER;
 #endif
 					}
 					else
@@ -208,6 +210,8 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 								cur = Mouse::ARTILLERY_SLAYER;
 							else if (TheInGameUI->isReverseMoveArmed())
 								cur = Mouse::REVERSE_MOVETO;
+							else if (TheInGameUI->isRunOverArmed())
+								cur = Mouse::RUN_OVER;
 #endif
 						}
 						else
@@ -300,6 +304,8 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 #if RTS_ZEROHOUR
 					if (TheInGameUI->isReverseMoveArmed())
 						type = GameMessage::MSG_DO_REVERSE_MOVETO;
+					else if (TheInGameUI->isRunOverArmed())
+						type = GameMessage::MSG_DO_RUN_OVER;
 					else if (TheInGameUI->isArtillerySlayerArmed())
 						type = GameMessage::MSG_DO_ARTILLERY_SLAYER;
 #endif
@@ -307,7 +313,7 @@ WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg,
 					msg->appendLocationArgument( world );
 
 					// Play the unit voice response
-					pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), type == GameMessage::MSG_DO_REVERSE_MOVETO ? GameMessage::MSG_DO_MOVETO : GameMessage::MSG_DO_ATTACKMOVETO);
+					pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), ( type == GameMessage::MSG_DO_REVERSE_MOVETO || type == GameMessage::MSG_DO_RUN_OVER ) ? GameMessage::MSG_DO_MOVETO : GameMessage::MSG_DO_ATTACKMOVETO);
 				}
 				else
 				{

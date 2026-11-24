@@ -317,9 +317,12 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 			else if( commandButton->getCommandType() == GUI_COMMAND_REVERSE_MOVE )
 				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
 					L"Drive backwards to the clicked spot. Same as holding Z while ordering a move. Press again to cancel.");
+			else if( commandButton->getCommandType() == GUI_COMMAND_RUN_OVER )
+				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
+					L"Move to the clicked spot, swerving on the way to run over enemy soldiers and any vehicles this unit can crush. Stop cancels it. Press again to cancel.");
 			else if( commandButton->getCommandType() == GUI_COMMAND_EXTRA_PAGE )
 				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
-					L"Switch between this unit's buttons and the extra page (Artillery Slayer, Reverse Move).");
+					L"Switch between this unit's buttons and the extra page (Artillery Slayer, Reverse Move, Run Over).");
 			else
 			descrip = TheGameText->fetch(commandButton->getDescriptionLabel());
 
@@ -418,6 +421,8 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Artillery Slayer (Y)");
 		else if( commandButton->getCommandType() == GUI_COMMAND_REVERSE_MOVE )
 			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Reverse Move (Z)");
+		else if( commandButton->getCommandType() == GUI_COMMAND_RUN_OVER )
+			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Run Over");
 		else if( commandButton->getCommandType() == GUI_COMMAND_EXTRA_PAGE )
 			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(),
 				commandButton->getTextLabel() == "CONTROLBAR:SCExtraPageBack" ? L"Back" : L"More");

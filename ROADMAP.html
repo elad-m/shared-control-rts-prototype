@@ -34,7 +34,7 @@
   <main>
     <header>
       <h1>Generals Shared Control Roadmap</h1>
-      <p class="muted">Living feature plan for the playable Zero Hour shared-control build Â· updated 16 September 2026</p>
+      <p class="muted">Living feature plan for the playable Zero Hour shared-control build · updated 23 November 2026 (release 0.8.1)</p>
       <p><a href="manual-test.html">Open the current manual test</a></p>
     </header>
 
@@ -62,20 +62,44 @@
     </section>
 
     <section>
-      <header><h2>ShockWave compatibility</h2><span class="status later">Planned investigation</span></header>
+      <header><h2>Mod compatibility</h2><span class="status done">Done</span></header>
       <div class="items">
-        <article><span class="status later">Spike</span><div><strong>Run shared control with ShockWave 1.201</strong><p>Install the public stable ShockWave release as a separate, user-supplied mod and test the current shared-control engine against its data. Do not redistribute ShockWave models, audio, INI files, or other assets without SWR Productions' permission.</p></div></article>
-        <article><span class="status later">Verify</span><div><strong>Compatibility and multiplayer baseline</strong><p>Check launcher/data-path assumptions, custom command sets and UI, all factions, skirmish AI, checksums, matching two-PC builds, Radmin play, and shared-control features before changing ShockWave gameplay.</p></div></article>
-        <article><span class="status later">Integrate</span><div><strong>Generic combat commands for the expanded roster</strong><p>Design target allocation and area fire around engine capabilities rather than Zero Hour unit names so ShockWave artillery and aircraftâ€”including the USA Armor General rosterâ€”can inherit the behavior with minimal per-unit data.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Shared control with ShockWave 1.201</strong><p>One release zip plays plain Zero Hour and the public ShockWave 1.201 release, which players install themselves. ShockWave models, audio, INI files and other assets are not redistributed.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Compatibility and multiplayer baseline</strong><p>Launchers, data paths, custom command sets, all factions, skirmish AI, matching two-PC builds and Radmin play verified under ShockWave.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Zero Hour Escalated 7.1.2</strong><p>Same zip, own launcher and a one-time setup script (0.5.0).</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Generic combat commands for the expanded roster</strong><p>New commands work from engine data (weapon ranges, kinds, locomotors) rather than unit names, so ShockWave and Escalated units inherit them. The artillery slayer is the first example.</p></div></article>
       </div>
       <div class="decision"><strong>Packaging direction</strong><br>Keep our GPL engine changes in this repository and require players to supply a legitimate Zero Hour installation and their own ShockWave installation. First target the public 1.201 release; treat any private or beta branch as a separate compatibility target.</div>
+    </section>
+
+    <section>
+      <header><h2>Released gameplay features</h2><span class="status done">Done</span></header>
+      <div class="items">
+        <article><span class="status done">Done</span><div><strong>Reverse move (Z)</strong><p>Treaded and wheeled vehicles drive to the destination backwards, keeping their front armor toward the enemy.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Pilot auto-return</strong><p>An ejected pilot heads for the nearest vehicle it may enter, otherwise to its owner's Command Center (0.5.0). Verified in play.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>General Powers tabs</strong><p>One tab per ally (0.6.0), with a default <em>All</em> tab and one-letter player tabs (0.8.1). Verified in multiplayer.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Artillery slayer (Y)</strong><p>An attack move that only stops for enemy artillery, then backs up home. Direct-fire units close in while firing; artillery fires from maximum range (0.7.0–0.8.1).</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Command bar buttons</strong><p>Painted Artillery Slayer and Reverse Move buttons next to Attack Move, a More/Back page for full panels, and support for mixed selections (0.8.0).</p></div></article>
+      </div>
+    </section>
+
+    <section>
+      <header><h2>Next feature candidates</h2><span class="status now">Investigating</span></header>
+      <div class="items">
+        <article><span class="status now">Research</span><div><strong>Attack move by value</strong><p>An attack move that prefers the most valuable target in reach instead of the nearest. The engine already ranks targets by a priority table minus a distance penalty (one point per 100 units), but only for script-assigned AI teams; every unit's <code>BuildCost</code> can supply the value.</p></div></article>
+        <article><span class="status now">Test</span><div><strong>Run-over move</strong><p>A button (no key yet) on ground vehicles that can crush, dozers and supply trucks included: a move on which the unit swerves at enemy soldiers and any vehicles it can crush, within 110 of itself, never back the way it came, for at most 170 or 5 seconds per swerve, then rejoins its path. Painted button with a red border and a tank-track cursor; on ShockWave's China Dozer it sits on the One Down page. Stop or any order ends it. Crushing follows the data (<code>CrusherLevel</code> against <code>CrushableLevel</code>).</p></div></article>
+        <article><span class="status later">Idea</span><div><strong>Hold Ground stance</strong><p>A per-unit toggle: fire at anything in range but never move on its own (no retaliation chase, no pursuit), so chosen units cannot be lured away while Retaliation stays on for the rest.</p></div></article>
+        <article><span class="status later">Idea</span><div><strong>Auto-retreat to repair</strong><p>Badly damaged vehicles head back to a repair point on their own, like pilot auto-return.</p></div></article>
+        <article><span class="status later">Planned</span><div><strong>Aircraft area strike and artillery barrage</strong><p>Area commands that spread fire across a player-drawn area. Design work in progress.</p></div></article>
+        <article><span class="status hold">Decision</span><div><strong>Shorter retaliation chase</strong><p>The occasional unit chasing deep into enemy lines is Zero Hour's own Retaliation option (confirmed by playing with it off). Option: cap how far a retaliating unit may leave its spot.</p></div></article>
+      </div>
     </section>
 
     <section>
       <header><h2>Networking and remaining issues</h2><span class="status later">Planned</span></header>
       <div class="items">
         <article><span class="status done">Done</span><div><strong>Shared control over the internet through Radmin VPN</strong><p>Matching clients completed a shared-control match across separate physical networks, with one PC on cellular data. Both games were bound to their Radmin addresses and used the Network lobby.</p></div></article>
-        <article><span class="status now">Test</span><div><strong>Optional mixed allied transports and garrisons</strong><p>A host-controlled <em>Allow Mixed Allied Garrisons</em> option now gates shared passenger vehicles, shared garrison space, and allied-pilot promotion. It is on by default and synchronized to every client. Owned structures keep their owner's flag; civilian garrison leadership passes only when the current leader has no occupants left. Complete the focused two-PC enabled/disabled checklist before marking this done.</p></div></article>
+        <article><span class="status done">Done</span><div><strong>Optional mixed allied transports and garrisons</strong><p>A host-controlled <em>Allow Mixed Allied Garrisons</em> option gates shared passenger vehicles, shared garrison space, and allied-pilot promotion. It is on by default and synchronized to every client. Owned structures keep their owner's flag; civilian garrison leadership passes only when the current leader has no occupants left. Verified on two PCs.</p></div></article>
         <article><span class="status now">Current</span><div><strong>Restore a fully green GenCI build matrix</strong><p>The tested modern Win32 Zero Hour builds pass. Legacy VC6 Zero Hour builds fail on the empty two-dimensional transfer-button initializer in <code>Diplomacy.cpp</code>; original Generals builds fail because shared Core UI code references the Zero Hour-only shared-control setting and two-argument GUI-command API. Keep both games and the historical compiler targets compatible, then rerun GenCI.</p></div></article>
         <article><span class="status later">Planned</span><div><strong>C&amp;C:Online match verification</strong><p>Windows 11 reaches Generals Online and both accounts entered a lobby. Full peer mesh/start still needs testing with a second suitable Windows 11 PC; Windows 8.1 compatibility remains problematic.</p></div></article>
         <article><span class="status hold">Low priority</span><div><strong>Allied control-group number badge</strong><p>Allied control groups select and receive commands correctly, but the group number is only drawn for locally owned units.</p></div></article>

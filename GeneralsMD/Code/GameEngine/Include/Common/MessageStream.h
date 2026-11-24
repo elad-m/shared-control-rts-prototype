@@ -580,6 +580,7 @@ public:
 		MSG_DO_FORCEMOVETO,													///< location
 		MSG_DO_REVERSE_MOVETO,											///< location; treaded and wheeled vehicles back up to it
 		MSG_DO_ARTILLERY_SLAYER,										///< location; attack move that only stops for enemy artillery, then backs up home
+		MSG_DO_RUN_OVER,														///< location; move on which crushers detour to run over enemies near the way
 		MSG_ADD_WAYPOINT,														///< location
 		MSG_DO_GUARD_POSITION,											///< Guard with the currently selected group
 		MSG_DO_GUARD_OBJECT,												///< Guard with the currently selected group

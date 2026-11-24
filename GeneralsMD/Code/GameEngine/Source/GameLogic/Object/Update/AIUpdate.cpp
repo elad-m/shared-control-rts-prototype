@@ -278,6 +278,14 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_artillerySlayerRequested = FALSE;
 	m_artillerySlayerReturnPending = FALSE;
 	m_artillerySlayerHome.zero();
+	m_runOverRequested = FALSE;
+	m_runOverActive = FALSE;
+	m_runOverDestination.zero();
+	m_runOverVictim = INVALID_ID;
+	m_runOverGivenUp = INVALID_ID;
+	m_runOverChaseStart.zero();
+	m_runOverChaseFrame = 0;
+	m_runOverNextScan = 0;
 	m_isMoving = FALSE;
 	m_isBlocked = FALSE;
 	m_isBlockedAndStuck = FALSE;
@@ -1224,6 +1232,14 @@ UpdateSleepTime AIUpdateInterface::update()
 		}
 		else if (UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4) < subMachineSleep)
 			subMachineSleep = UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4);
+	}
+
+	// TheSuperHackers @feature Run-over move: steer at a nearby enemy to crush. Runs after the move state
+	// has pointed the locomotor along the path, so dropping the victim falls back to the path.
+	if (m_runOverActive)
+	{
+		updateRunOver();
+		subMachineSleep = UPDATE_SLEEP_NONE;
 	}
 
 	// do this objects movement
@@ -2735,6 +2751,129 @@ Bool AIUpdateInterface::isAllowedToRespondToAiCommands(const AICommandParms* par
 }
 
 //-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Run-over move.
+//-------------------------------------------------------------------------------------------------
+static const Real RUN_OVER_SCAN_RANGE = 110.0f;		///< how far from the unit a victim may be (a tank gun reaches about 150)
+static const Real RUN_OVER_CHASE_LIMIT = 170.0f;	///< how far one swerve may take the unit from where it left the path
+static const UnsignedInt RUN_OVER_CHASE_FRAMES = 5 * LOGICFRAMES_PER_SECOND;	///< how long one swerve may last
+static const Real RUN_OVER_BEHIND_SLACK = 40.0f;	///< victims may be this much farther from the destination than the unit
+static const Real RUN_OVER_DRIVE_THROUGH = 15.0f;	///< aim this far past the victim, so the unit drives over it
+
+void AIUpdateInterface::beginRunOver()
+{
+	if (getObject()->getCrusherLevel() == 0)
+		return;
+	m_runOverActive = TRUE;
+	m_runOverVictim = INVALID_ID;
+	m_runOverGivenUp = INVALID_ID;
+	m_runOverNextScan = 0;
+}
+
+Bool AIUpdateInterface::isRunOverVictim(Object *victim) const
+{
+	const Object *me = getObject();
+	if (victim == nullptr || victim->isEffectivelyDead() || victim->getContainedBy() != nullptr)
+		return FALSE;
+	if (victim->isKindOf(KINDOF_STRUCTURE) || victim->isKindOf(KINDOF_MINE) || victim->isKindOf(KINDOF_DEMOTRAP) || victim->isKindOf(KINDOF_PROJECTILE)
+			|| victim->isKindOf(KINDOF_AIRCRAFT) || victim->isSignificantlyAboveTerrain())
+		return FALSE;
+	if (me->getRelationship(victim) != ENEMIES)
+		return FALSE;
+	return me->canCrushOrSquish(victim);
+}
+
+class PartitionFilterRunOverVictim : public PartitionFilter
+{
+public:
+	PartitionFilterRunOverVictim(const AIUpdateInterface *ai, const Object *me, ObjectID givenUp, const Coord3D *destination)
+		: m_ai(ai), m_givenUp(givenUp), m_destination(destination)
+	{
+		const Coord3D *pos = me->getPosition();
+		m_myDistToDestination = sqrt(sqr(pos->x - destination->x) + sqr(pos->y - destination->y));
+	}
+	virtual Bool allow(Object *objOther) override
+	{
+		if (objOther->getID() == m_givenUp || !m_ai->friend_isRunOverVictim(objOther))
+			return false;
+		// Swerve toward the destination or to the side, not back the way we came.
+		const Coord3D *pos = objOther->getPosition();
+		const Real dist = sqrt(sqr(pos->x - m_destination->x) + sqr(pos->y - m_destination->y));
+		return dist <= m_myDistToDestination + RUN_OVER_BEHIND_SLACK;
+	}
+#if defined(RTS_DEBUG)
+	virtual const char* debugGetName() override { return "PartitionFilterRunOverVictim"; }
+#endif
+private:
+	const AIUpdateInterface *m_ai;
+	ObjectID m_givenUp;
+	const Coord3D *m_destination;
+	Real m_myDistToDestination;
+};
+
+Object *AIUpdateInterface::findRunOverVictim()
+{
+	Object *me = getObject();
+	UnsignedInt flags = 0;
+	if (me->getControllingPlayer() && me->getControllingPlayer()->getPlayerType() == PLAYER_HUMAN)
+		flags |= AI::UNFOGGED;
+	PartitionFilterRunOverVictim isVictim(this, me, m_runOverGivenUp, &m_runOverDestination);
+	return TheAI->findClosestEnemy(me, RUN_OVER_SCAN_RANGE, flags, nullptr, &isVictim);
+}
+
+void AIUpdateInterface::updateRunOver()
+{
+	Object *me = getObject();
+	if (isAiInDeadState() || isIdle() || !isDoingGroundMovement() || me->isDisabled())
+	{
+		m_runOverActive = FALSE;
+		m_runOverVictim = INVALID_ID;
+		return;
+	}
+	// Only while the move state is following its path; it sets that goal again every frame.
+	if (m_locomotorGoalType != POSITION_ON_PATH || getPath() == nullptr || isWaitingForPath())
+		return;
+
+	const UnsignedInt now = TheGameLogic->getFrame();
+	Object *victim = TheGameLogic->findObjectByID(m_runOverVictim);
+	if (victim != nullptr)
+	{
+		const Real swerveSqr = sqr(me->getPosition()->x - m_runOverChaseStart.x) + sqr(me->getPosition()->y - m_runOverChaseStart.y);
+		if (!isRunOverVictim(victim))
+			victim = nullptr;
+		else if (swerveSqr > sqr(RUN_OVER_CHASE_LIMIT) || now - m_runOverChaseFrame > RUN_OVER_CHASE_FRAMES)
+		{
+			m_runOverGivenUp = victim->getID();		// too far or too slow: leave it, back to the path
+			victim = nullptr;
+		}
+	}
+	if (victim == nullptr)
+	{
+		m_runOverVictim = INVALID_ID;
+		if (now < m_runOverNextScan)
+			return;
+		m_runOverNextScan = now + LOGICFRAMES_PER_SECOND / 3;
+		victim = findRunOverVictim();
+		if (victim == nullptr)
+			return;
+		m_runOverVictim = victim->getID();
+		m_runOverChaseStart = *me->getPosition();
+		m_runOverChaseFrame = now;
+	}
+
+	Coord3D aim = *victim->getPosition();
+	const Real dx = aim.x - me->getPosition()->x;
+	const Real dy = aim.y - me->getPosition()->y;
+	const Real len = sqrt(dx * dx + dy * dy);
+	if (len > 1.0f)
+	{
+		aim.x += dx / len * RUN_OVER_DRIVE_THROUGH;
+		aim.y += dy / len * RUN_OVER_DRIVE_THROUGH;
+	}
+	setLocomotorGoalPositionExplicit(aim);
+	setDesiredSpeed(FAST_AS_POSSIBLE);
+}
+
+//-------------------------------------------------------------------------------------------------
 void AIUpdateInterface::aiDoCommand(const AICommandParms* parms)
 {
 	// TheSuperHackers @info The AiCommandParms for m_obj, m_otherObj and m_team should be null tested before use.
@@ -2747,6 +2886,9 @@ void AIUpdateInterface::aiDoCommand(const AICommandParms* parms)
 	m_pilotAutoReturnPending = FALSE;
 	// TheSuperHackers @feature Likewise an order replaces an artillery slayer's trip home.
 	m_artillerySlayerReturnPending = FALSE;
+	// TheSuperHackers @feature And ends a run-over move (a new run-over order starts again on its move).
+	m_runOverActive = FALSE;
+	m_runOverVictim = INVALID_ID;
 
 #ifdef ALLOW_SURRENDER
 	// surrendered items have very limited options, and only via AI cmds

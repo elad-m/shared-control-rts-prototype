@@ -218,6 +218,7 @@ enum GUICommandType CPP_11(: Int)
 	GUI_COMMAND_REVERSE_MOVE,							///< TheSuperHackers @feature arm reverse move (same as Z), added by code, not INI
 	GUI_COMMAND_ARTILLERY_SLAYER,					///< TheSuperHackers @feature arm artillery slayer (same as Y), added by code, not INI
 	GUI_COMMAND_EXTRA_PAGE,								///< TheSuperHackers @feature flip a full panel to the page holding the extra buttons, and back
+	GUI_COMMAND_RUN_OVER,									///< TheSuperHackers @feature arm a run-over move, added by code, not INI
 
 	// add more commands here, don't forget to update the string command list below too ...
 
@@ -275,6 +276,7 @@ static const char *const TheGuiCommandNames[] =
 	"REVERSE_MOVE",
 	"ARTILLERY_SLAYER",
 	"EXTRA_PAGE",
+	"RUN_OVER",
 
 	nullptr
 };
@@ -1049,8 +1051,11 @@ private:
 	void clearExtraMoveSets();			///< TheSuperHackers @feature frees the cached set copies
 	Int getExtraSlotOrder( Int attackMoveSlot, Int *order ) const;	///< TheSuperHackers @feature preferred slots for the extra buttons
 	void addExtraMoveCommandsToMultiSelect();	///< TheSuperHackers @feature extra buttons on a multi-unit bar
+	static Bool canRunOver( const Object *obj );	///< TheSuperHackers @feature the unit gets the run-over button
+	enum { USUAL_ATTACK_MOVE_SLOT = 10 };	///< TheSuperHackers @feature where extra buttons go on a panel without attack move
 	const CommandButton *m_reverseMoveButton;
 	const CommandButton *m_artillerySlayerButton;
+	const CommandButton *m_runOverButton;
 	const CommandButton *m_extraPageMoreButton;
 	const CommandButton *m_extraPageBackButton;
 	Bool m_extraPageShown;					///< the selected unit's panel shows the extra page (reset on selection change)

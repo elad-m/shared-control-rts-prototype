@@ -669,6 +669,26 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 				}
 			}
 			break;
+
+		// TheSuperHackers @feature Arms (or cancels) run-over targeting; the next click starts a run-over move.
+		case GUI_COMMAND_RUN_OVER:
+			if (TheInGameUI->isRunOverArmed())
+			{
+				TheInGameUI->setGUICommand(nullptr);
+			}
+			else
+			{
+				for (const CommandButton *button = TheControlBar->getCommandButtons(); button; button = button->getNext())
+				{
+					if (button->getCommandType() == GUI_COMMAND_ATTACK_MOVE)
+					{
+						TheInGameUI->setGUICommand(button);
+						TheInGameUI->setRunOverArmed(TRUE);
+						break;
+					}
+				}
+			}
+			break;
 #endif
 
 		//---------------------------------------------------------------------------------------------

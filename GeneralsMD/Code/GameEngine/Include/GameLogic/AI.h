@@ -1013,6 +1013,7 @@ public:
 	void releaseWeaponLockForGroup(WeaponLockType lockType);///< Clear each guys weapon choice
 	void setReverseMoveRequestedForGroup(Bool requested);		///< TheSuperHackers @feature Mark or clear a pending reverse-move order on every member
 	void setArtillerySlayerRequestedForGroup(Bool requested);	///< TheSuperHackers @feature Mark or clear a pending artillery-slayer order on every member
+	void setRunOverRequestedForGroup(Bool requested, const Coord3D *destination = nullptr);	///< TheSuperHackers @feature Mark or clear a pending run-over order on every member
 	void setWeaponSetFlag( WeaponSetType wst );
 
 protected:

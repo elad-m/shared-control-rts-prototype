@@ -499,6 +499,14 @@ public:
 	void setArtillerySlayerRequested(Bool requested) { m_artillerySlayerRequested = requested; }
 	Bool takeArtillerySlayerRequest() { const Bool requested = m_artillerySlayerRequested; m_artillerySlayerRequested = FALSE; return requested; }
 	void requestArtillerySlayerReturn(const Coord3D *home) { m_artillerySlayerHome = *home; m_artillerySlayerReturnPending = TRUE; }
+
+	// TheSuperHackers @feature Run-over move. The request is set while the move order is being issued;
+	// every move state that order starts calls beginRunOver. The unit then swerves at enemies it can
+	// crush until it is idle or gets another order (Stop included).
+	void setRunOverRequested(Bool requested, const Coord3D *destination = nullptr) { m_runOverRequested = requested; if (destination) m_runOverDestination = *destination; }
+	Bool isRunOverRequested() const { return m_runOverRequested; }
+	void beginRunOver();
+	Bool friend_isRunOverVictim(Object *victim) const { return isRunOverVictim(victim); }
 	void friend_endingMove();
 
 	void friend_setPath(Path *newPath);
@@ -808,6 +816,18 @@ private:
 	Bool				m_artillerySlayerRequested;		///< Only set while an artillery-slayer order is being issued; not saved.
 	Bool				m_artillerySlayerReturnPending;	///< An artillery slayer that will back up home once idle; not saved.
 	Coord3D			m_artillerySlayerHome;			///< Where the artillery-slayer order was given.
+	// TheSuperHackers @feature Run-over move; none of it is saved.
+	Bool				m_runOverRequested;				///< Only set while a run-over order is being issued.
+	Bool				m_runOverActive;					///< On a run-over move.
+	Coord3D			m_runOverDestination;			///< Where the order sends the unit.
+	ObjectID		m_runOverVictim;					///< The enemy being run down, if any.
+	ObjectID		m_runOverGivenUp;					///< The last victim the unit gave up on; not picked again.
+	Coord3D			m_runOverChaseStart;			///< Where the current swerve left the path.
+	UnsignedInt	m_runOverChaseFrame;			///< When the current swerve started.
+	UnsignedInt	m_runOverNextScan;				///< Next frame to look for a victim.
+	void updateRunOver();
+	Object *findRunOverVictim();
+	Bool isRunOverVictim(Object *victim) const;
 	void startPilotAutoReturn();
 	Bool				m_isMoving;									///< True if we are in an AIInternalMoveToState.
 	Bool				m_isBlocked;

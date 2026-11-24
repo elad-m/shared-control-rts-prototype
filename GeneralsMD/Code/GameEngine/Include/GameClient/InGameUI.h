@@ -555,6 +555,8 @@ public:  // ********************************************************************
 	Bool isArtillerySlayerArmed() const		{ return m_artillerySlayerArmed; }
 	void setReverseMoveArmed( Bool armed )	{ m_reverseMoveArmed = armed; }	///< TheSuperHackers @feature reverse-move button
 	Bool isReverseMoveArmed() const		{ return m_reverseMoveArmed; }
+	void setRunOverArmed( Bool armed )	{ m_runOverArmed = armed; }	///< TheSuperHackers @feature run-over button
+	Bool isRunOverArmed() const		{ return m_runOverArmed; }
 
 	void setCameraRotateLeft( Bool set )		{ m_cameraRotatingLeft = set; }
 	void setCameraRotateRight( Bool set )		{ m_cameraRotatingRight = set; }
@@ -955,6 +957,7 @@ protected:
 	Bool												m_forceMoveToMode;		///< are we in force move mode?
 	Bool												m_attackMoveToMode;	///< are we in attack move mode?
 	Bool												m_reverseMoveArmed;	///< pending attack-move targeting is a reverse move (button)
+	Bool												m_runOverArmed;	///< pending attack-move targeting is a run-over move (button)
 	Bool												m_artillerySlayerArmed;	///< pending attack-move targeting is an artillery slayer
 	Bool												m_preferSelection;		///< the shift key has been depressed.
 

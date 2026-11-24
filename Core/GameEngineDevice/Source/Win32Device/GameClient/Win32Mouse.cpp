@@ -417,6 +417,8 @@ void Win32Mouse::initCursorResources()
 					cursorResources[cursor][direction] = cursorResources[MOVETO][0];
 				if (cursor == ARTILLERY_SLAYER && !cursorResources[cursor][direction])
 					cursorResources[cursor][direction] = cursorResources[ATTACKMOVETO][0];
+				if (cursor == RUN_OVER && !cursorResources[cursor][direction])
+					cursorResources[cursor][direction] = cursorResources[MOVETO][0];
 				DEBUG_ASSERTCRASH(cursorResources[cursor][direction], ("MissingCursor %s",resourcePath));
 			}
 		}

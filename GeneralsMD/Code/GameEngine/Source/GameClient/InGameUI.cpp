@@ -578,6 +578,8 @@ void InGameUI::setMouseCursor(Mouse::MouseCursor c)
 		c = Mouse::ARTILLERY_SLAYER;
 	else if (c == Mouse::ATTACKMOVETO && m_reverseMoveArmed)
 		c = Mouse::REVERSE_MOVETO;
+	else if (c == Mouse::ATTACKMOVETO && m_runOverArmed)
+		c = Mouse::RUN_OVER;	// TheSuperHackers @feature the move cursor in blue
 
 	TheMouse->setCursor(c);
 
@@ -1269,6 +1271,7 @@ InGameUI::InGameUI()
 	m_attackMoveToMode	= false;
 	m_artillerySlayerArmed = false;
 	m_reverseMoveArmed = false;
+	m_runOverArmed = false;
 	m_preferSelection		= false;
 
 	m_curRcType = RADIUSCURSOR_NONE;
@@ -3220,6 +3223,7 @@ void InGameUI::setGUICommand( const CommandButton *command, ObjectID sourceObjec
 
 	m_artillerySlayerArmed = false;
 	m_reverseMoveArmed = false;
+	m_runOverArmed = false;
 
 	// sanity
 	if( command )

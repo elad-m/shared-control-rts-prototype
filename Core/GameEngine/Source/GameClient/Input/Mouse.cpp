@@ -587,6 +587,12 @@ void Mouse::parseIni()
 		artillerySlayer->cursorName = "ArtillerySlayer";
 		artillerySlayer->textureName = "SCCArtillerySlayer";
 	}
+	CursorInfo *runOver = &m_cursorInfo[RUN_OVER];
+	if (runOver->textureName.isEmpty())
+	{
+		runOver->cursorName = "RunOver";
+		runOver->textureName = "SCCRunOver";
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -1338,6 +1344,7 @@ Int Mouse::getCursorIndex(const AsciiString& name)
 		"ParticleUplinkCannon",
 		"ReverseMoveTo",
 		"ArtillerySlayer",
+		"RunOver",
 
 	};
 

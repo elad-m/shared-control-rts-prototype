@@ -1619,6 +1619,9 @@ StateReturnType AIInternalMoveToState::onEnter()
 
 	// Always take the request, so it cannot linger and reverse some later move.
 	const Bool reverseOrdered = ai->takeReverseMoveRequest();
+	// TheSuperHackers @feature This move is (part of) a run-over order; AIUpdateInterface does the swerving.
+	if (ai->isRunOverRequested())
+		ai->beginRunOver();
 	if (ai->getCurLocomotor()) {
 		ai->getCurLocomotor()->startMove(reverseOrdered);
 		if (ai->getCurLocomotor()->isUltraAccurate())

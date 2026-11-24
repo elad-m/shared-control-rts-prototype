@@ -561,6 +561,20 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 			}
 			break;
 		}
+		// TheSuperHackers @feature Run-over move: a move on which crushers swerve to run enemies over.
+		case GameMessage::MSG_DO_RUN_OVER:
+		{
+			if (currentlySelectedGroup)
+			{
+				Coord3D dest = msg->getArgument( 0 )->location;
+				currentlySelectedGroup->releaseWeaponLockForGroup(LOCKED_TEMPORARILY);	// release any temporary locks.
+				currentlySelectedGroup->setRunOverRequestedForGroup(TRUE, &dest);
+				currentlySelectedGroup->groupMoveToPosition( &dest, false, CMD_FROM_PLAYER );
+				// Drop the request on any member that did not start moving.
+				currentlySelectedGroup->setRunOverRequestedForGroup(FALSE);
+			}
+			break;
+		}
 #endif
 		// MSG_DO_SALVAGE is intentionally set up to mimic the moveto.
 		case GameMessage::MSG_DO_SALVAGE:

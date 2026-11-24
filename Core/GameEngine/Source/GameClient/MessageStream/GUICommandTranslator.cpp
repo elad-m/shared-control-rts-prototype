@@ -284,20 +284,24 @@ static CommandStatus doAttackMoveCommand( const CommandButton *command, const IC
 #if RTS_ZEROHOUR
 	const Bool artillerySlayer = TheInGameUI->isArtillerySlayerArmed();
 	const Bool reverseMove = TheInGameUI->isReverseMoveArmed();	// TheSuperHackers @feature reverse-move button
+	const Bool runOver = TheInGameUI->isRunOverArmed();	// TheSuperHackers @feature run-over button
 #else
 	const Bool artillerySlayer = FALSE;
 	const Bool reverseMove = FALSE;
+	const Bool runOver = FALSE;
 #endif
 	GameMessage::Type type = GameMessage::MSG_DO_ATTACKMOVETO;
 	if( reverseMove )
 		type = GameMessage::MSG_DO_REVERSE_MOVETO;
+	else if( runOver )
+		type = GameMessage::MSG_DO_RUN_OVER;
 	else if( artillerySlayer )
 		type = GameMessage::MSG_DO_ARTILLERY_SLAYER;
 	GameMessage *msg = TheMessageStream->appendMessage( type );
 	msg->appendLocationArgument( world );
 
 	// Play the unit voice response
-	pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), reverseMove ? GameMessage::MSG_DO_MOVETO : GameMessage::MSG_DO_ATTACKMOVETO);
+	pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), ( reverseMove || runOver ) ? GameMessage::MSG_DO_MOVETO : GameMessage::MSG_DO_ATTACKMOVETO);
 
 	return COMMAND_COMPLETE;
 

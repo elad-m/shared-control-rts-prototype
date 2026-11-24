@@ -885,6 +885,7 @@ ControlBar::ControlBar()
 	m_commandSets = nullptr;
 	m_reverseMoveButton = nullptr;
 	m_artillerySlayerButton = nullptr;
+	m_runOverButton = nullptr;
 	m_extraPageMoreButton = nullptr;
 	m_extraPageBackButton = nullptr;
 	m_extraPageShown = FALSE;
@@ -2147,6 +2148,12 @@ void ControlBar::createExtraMoveButtons()
 	reverse->friend_copyLookFrom( attackMove );
 	m_reverseMoveButton = reverse;
 
+	CommandButton *runOver = newCommandButton( "SCCommand_RunOver" );
+	runOver->friend_setCommandType( GUI_COMMAND_RUN_OVER );
+	runOver->friend_setLabels( "CONTROLBAR:SCRunOver", "CONTROLBAR:TooltipSCRunOver" );
+	runOver->friend_copyLookFrom( attackMove );
+	m_runOverButton = runOver;
+
 	CommandButton *more = newCommandButton( "SCCommand_ExtraPageMore" );
 	more->friend_setCommandType( GUI_COMMAND_EXTRA_PAGE );
 	more->friend_setLabels( "CONTROLBAR:SCExtraPageMore", "CONTROLBAR:TooltipSCExtraPageMore" );
@@ -2167,6 +2174,7 @@ void ControlBar::createExtraMoveButtons()
 	{
 		{ slayer, nullptr, "SCArtillerySlayer.tga", "SCArtillerySlayerButton" },
 		{ reverse, nullptr, "SCReverseMove.tga", "SCReverseMoveButton" },
+		{ runOver, nullptr, "SCRunOver.tga", "SCRunOverButton" },
 		{ more, "SSChinaCommandSetDown", "SCPageMore.tga", "SCPageMoreButton" },
 		{ back, "SSChinaCommandSetUp", "SCPageBack.tga", "SCPageBackButton" },
 	};
@@ -2253,10 +2261,12 @@ void ControlBar::addExtraMoveCommandsToMultiSelect()
 	for( Int i = 0; i < UI_SLOTS && attackMoveSlot < 0; i++ )
 		if( m_commonCommands[ i ] && m_commonCommands[ i ]->getCommandType() == GUI_COMMAND_ATTACK_MOVE )
 			attackMoveSlot = i;
-	if( attackMoveSlot < 0 )
-		return;
+	const Bool hasAttackMove = attackMoveSlot >= 0;
+	if( !hasAttackMove )
+		attackMoveSlot = USUAL_ATTACK_MOVE_SLOT;
 
 	Bool allGroundVehicles = TRUE;
+	Bool anyCrusher = FALSE;
 	const DrawableList *selected = TheInGameUI->getAllSelectedDrawables();
 	for( DrawableListCIt it = selected->begin(); it != selected->end(); ++it )
 	{
@@ -2265,16 +2275,24 @@ void ControlBar::addExtraMoveCommandsToMultiSelect()
 			continue;
 		if( !obj->isKindOf( KINDOF_VEHICLE ) || obj->isKindOf( KINDOF_AIRCRAFT ) )
 			allGroundVehicles = FALSE;
+		if( canRunOver( obj ) )
+			anyCrusher = TRUE;
 	}
 
-	const CommandButton *extra[ 2 ] = { m_artillerySlayerButton, allGroundVehicles ? m_reverseMoveButton : nullptr };
+	// Run over when any selected unit can crush, attack move or not; the others just make the move.
+	const CommandButton *extra[ 3 ];
+	Int extraCount = 0;
+	if( hasAttackMove )
+		extra[ extraCount++ ] = m_artillerySlayerButton;
+	if( hasAttackMove && allGroundVehicles )
+		extra[ extraCount++ ] = m_reverseMoveButton;
+	if( anyCrusher && m_runOverButton )
+		extra[ extraCount++ ] = m_runOverButton;
 	Int order[ UI_SLOTS ];
 	const Int orderCount = getExtraSlotOrder( attackMoveSlot, order );
 	Int next = 0;
-	for( Int k = 0; k < orderCount && next < 2; k++ )
+	for( Int k = 0; k < orderCount && next < extraCount; k++ )
 	{
-		if( extra[ next ] == nullptr )
-			break;
 		const Int slot = order[ k ];
 		if( m_commonCommands[ slot ] != nullptr )
 			continue;
@@ -2284,6 +2302,16 @@ void ControlBar::addExtraMoveCommandsToMultiSelect()
 		setControlCommand( m_commandWindows[ slot ], m_commonCommands[ slot ] );
 	}
 #endif
+}
+
+//-------------------------------------------------------------------------------------------------
+/** TheSuperHackers @feature Who gets the run-over button: ground vehicles that crush something. */
+//-------------------------------------------------------------------------------------------------
+Bool ControlBar::canRunOver( const Object *obj )
+{
+	// Dozers, supply trucks and other support vehicles too: they crush soldiers like tanks do.
+	return obj->isKindOf( KINDOF_VEHICLE ) && !obj->isKindOf( KINDOF_AIRCRAFT ) && !obj->isKindOf( KINDOF_IMMOBILE )
+		&& obj->getCrusherLevel() > 0;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -2320,12 +2348,24 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 			break;
 		}
 	}
-	if( attackMoveSlot < 0 )
+	// Units without attack move (dozers, supply trucks, other support vehicles) still get Run Over if
+	// they crush; it goes where attack move usually sits.
+	const Bool hasAttackMove = attackMoveSlot >= 0;
+	const Bool withRunOver = m_runOverButton != nullptr && canRunOver( obj );
+	if( !hasAttackMove && !withRunOver )
 		return set;
+	if( !hasAttackMove )
+		attackMoveSlot = USUAL_ATTACK_MOVE_SLOT;
 
-	const Bool withReverse = obj->isKindOf( KINDOF_VEHICLE ) && !obj->isKindOf( KINDOF_AIRCRAFT );
-	const CommandButton *extra[ 2 ] = { m_artillerySlayerButton, m_reverseMoveButton };
-	const Int extraCount = withReverse ? 2 : 1;
+	const Bool withReverse = hasAttackMove && obj->isKindOf( KINDOF_VEHICLE ) && !obj->isKindOf( KINDOF_AIRCRAFT );
+	const CommandButton *extra[ 3 ];
+	Int extraCount = 0;
+	if( hasAttackMove )
+		extra[ extraCount++ ] = m_artillerySlayerButton;
+	if( withReverse )
+		extra[ extraCount++ ] = m_reverseMoveButton;
+	if( withRunOver )
+		extra[ extraCount++ ] = m_runOverButton;
 
 	Int order[ UI_SLOTS ];
 	const Int orderCount = getExtraSlotOrder( attackMoveSlot, order );
@@ -2334,9 +2374,23 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 		if( set->getCommandButton( order[ k ] ) == nullptr )
 			freeCount++;
 
+	// A set that already pages by itself (ShockWave's China Dozer: One Down / One Up, the images our
+	// More / Back borrow) gets no second More; the extras that fit go in, the rest live on its other page.
+	Bool ownPaging = FALSE;
+	for( Int i = 0; i < UI_SLOTS && !ownPaging; i++ )
+	{
+		const CommandButton *button = set->getCommandButton( i );
+		const Image *image = button ? button->getButtonImage() : nullptr;
+		ownPaging = image != nullptr && ( image == m_extraPageMoreButton->getButtonImage() || image == m_extraPageBackButton->getButtonImage() );
+	}
+	if( ownPaging && freeCount < extraCount )
+		extraCount = freeCount;
+	if( extraCount == 0 )
+		return set;
+
 	const Bool fits = freeCount >= extraCount;
 	const Bool page2 = !fits && m_extraPageShown;
-	const std::pair<const CommandSet*, Int> key( set, ( withReverse ? 1 : 0 ) | ( fits ? 0 : ( page2 ? 4 : 2 ) ) );
+	const std::pair<const CommandSet*, Int> key( set, ( withReverse ? 1 : 0 ) | ( withRunOver ? 8 : 0 ) | ( fits ? 0 : ( page2 ? 4 : 2 ) ) | ( extraCount << 4 ) );
 	std::map<std::pair<const CommandSet*, Int>, CommandSet*>::iterator found = m_extraMoveSets.find( key );
 	if( found != m_extraMoveSets.end() )
 		return found->second;
@@ -2377,9 +2431,9 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 				copy->friend_setCommandButton( i, nullptr );
 			if( pageSlot >= 0 )
 				copy->friend_setCommandButton( pageSlot, m_extraPageBackButton );
-			const CommandButton *items[ 3 ] = { m_artillerySlayerButton, withReverse ? m_reverseMoveButton : nullptr, displaced };
+			const CommandButton *items[ 4 ] = { extraCount > 0 ? extra[ 0 ] : nullptr, extraCount > 1 ? extra[ 1 ] : nullptr, extraCount > 2 ? extra[ 2 ] : nullptr, displaced };
 			Int k = 0;
-			for( Int n = 0; n < 3; n++ )
+			for( Int n = 0; n < 4; n++ )
 			{
 				if( items[ n ] == nullptr )
 					continue;
@@ -2851,6 +2905,8 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 		GadgetButtonSetBorder(button, GameMakeColor(0, 0, 0, 255));
 	else if( commandButton->getCommandType() == GUI_COMMAND_REVERSE_MOVE )
 		GadgetButtonSetBorder(button, GameMakeColor(255, 255, 255, 255));
+	else if( commandButton->getCommandType() == GUI_COMMAND_RUN_OVER )
+		GadgetButtonSetBorder(button, GameMakeColor(226, 44, 32, 255));
 
 	if (TheHotKeyManager)
 	{
