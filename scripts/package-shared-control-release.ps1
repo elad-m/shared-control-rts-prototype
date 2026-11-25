@@ -36,6 +36,7 @@ $requiredFiles = @(
     (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCArtillerySlayer.ani'),
     (Join-Path $repositoryRoot 'resources\shared-control\Cursors\SCCRunOver.ani'),
     (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCRunOver.tga'),
+    (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCRepairReturn.tga'),
     (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCReverseMove.tga'),
     (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCArtillerySlayer.tga'),
     (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageMore.tga'),
@@ -95,6 +96,7 @@ Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageMore.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCPageBack.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCRunOver.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
+Copy-Item -LiteralPath (Join-Path $repositoryRoot 'resources\shared-control\Art\Textures\SCRepairReturn.tga') -Destination (Join-Path $stagingDirectory 'Art\Textures')
 if (-not [string]::IsNullOrWhiteSpace($Direct3DWrapperPath)) {
     Copy-Item -LiteralPath $Direct3DWrapperPath -Destination (Join-Path $stagingDirectory 'd3d8.dll')
     Copy-Item -LiteralPath $Direct3DWrapperLicensePath -Destination (Join-Path $stagingDirectory 'd3d8to9-LICENSE.md')

@@ -507,6 +507,12 @@ public:
 	Bool isRunOverRequested() const { return m_runOverRequested; }
 	void beginRunOver();
 	Bool friend_isRunOverVictim(Object *victim) const { return isRunOverVictim(victim); }
+
+	// TheSuperHackers @feature Repair and Return. The unit picks whichever gets it fixed and back
+	// soonest: healing where it is, or a repair dock, repair vehicle, heal pad (infantry) or airfield
+	// (helicopters). Once fixed it goes back to where the order was given. A player order cancels it.
+	void startRepairReturn();
+	static Bool canRepairReturn(const Object *obj);	///< the unit gets the Repair and Return button
 	void friend_endingMove();
 
 	void friend_setPath(Path *newPath);
@@ -828,6 +834,16 @@ private:
 	void updateRunOver();
 	Object *findRunOverVictim();
 	Bool isRunOverVictim(Object *victim) const;
+	// TheSuperHackers @feature Repair and Return; none of it is saved.
+	Int					m_repairMode;							///< RepairReturnMode: what the unit is doing about its damage
+	ObjectID		m_repairPlace;						///< the dock, heal pad, airfield or repair vehicle it is using
+	Coord3D			m_repairHome;							///< where the order was given; it goes back there once fixed
+	UnsignedInt	m_repairOrderFrame;				///< when the current trip was ordered
+	UnsignedInt	m_repairNextCheck;				///< next frame to look at progress
+	Int					m_repairTries;						///< trips that ended without the unit being fixed
+	void updateRepairReturn();
+	Bool planRepair(Bool switchFromSelf);
+	void stopRepairReturn() { m_repairMode = 0; m_repairPlace = INVALID_ID; }
 	void startPilotAutoReturn();
 	Bool				m_isMoving;									///< True if we are in an AIInternalMoveToState.
 	Bool				m_isBlocked;

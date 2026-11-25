@@ -67,6 +67,8 @@ public:
 
 	virtual Bool isRallyPointAfterDockType() override {return TRUE;} ///< A minority of docks want to give you a final command to their rally point
 
+	Real getFramesForFullHeal() const { return getRepairDockUpdateModuleData()->m_framesForFullHeal; }	///< TheSuperHackers @feature for Repair and Return
+
 protected:
 
   ObjectID m_lastRepair;			///< object we were repairing last

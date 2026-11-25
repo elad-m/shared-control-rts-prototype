@@ -135,6 +135,36 @@ void AutoHealBehavior::undoUpgrade()
 }
 
 //-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Repair and Return: whether this module would heal `target` (as update() does).
+//-------------------------------------------------------------------------------------------------
+Bool AutoHealBehavior::healsTarget( const Object *target ) const
+{
+	const AutoHealBehaviorModuleData *d = getAutoHealBehaviorModuleData();
+	const Object *me = getObject();
+	if( target == nullptr || d->m_singleBurst )
+		return FALSE;
+	if( d->m_affectsWholePlayer )
+	{
+		if( target->getControllingPlayer() != me->getControllingPlayer() )
+			return FALSE;
+	}
+	else if( d->m_radius == 0.0f )
+		return target == me;		// heals only itself, whatever its kind
+	if( d->m_skipSelfForHealing && target == me )
+		return FALSE;
+	return target->isAnyKindOf( d->m_kindOf ) && !target->isAnyKindOf( d->m_forbiddenKindOf );
+}
+
+//-------------------------------------------------------------------------------------------------
+Real AutoHealBehavior::getHealPerFrame() const
+{
+	const AutoHealBehaviorModuleData *d = getAutoHealBehaviorModuleData();
+	if( d->m_healingDelay == 0 || d->m_healingDelay == UINT_MAX )
+		return 0.0f;
+	return (Real)d->m_healingAmount / (Real)d->m_healingDelay;
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Damage has been dealt, this is an opportunity to reach to that damage */
 //-------------------------------------------------------------------------------------------------
 void AutoHealBehavior::onDamage( DamageInfo *damageInfo )

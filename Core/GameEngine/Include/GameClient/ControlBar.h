@@ -219,6 +219,7 @@ enum GUICommandType CPP_11(: Int)
 	GUI_COMMAND_ARTILLERY_SLAYER,					///< TheSuperHackers @feature arm artillery slayer (same as Y), added by code, not INI
 	GUI_COMMAND_EXTRA_PAGE,								///< TheSuperHackers @feature flip a full panel to the page holding the extra buttons, and back
 	GUI_COMMAND_RUN_OVER,									///< TheSuperHackers @feature arm a run-over move, added by code, not INI
+	GUI_COMMAND_REPAIR_RETURN,						///< TheSuperHackers @feature get fixed the fastest way, then go back; added by code, not INI
 
 	// add more commands here, don't forget to update the string command list below too ...
 
@@ -277,6 +278,7 @@ static const char *const TheGuiCommandNames[] =
 	"ARTILLERY_SLAYER",
 	"EXTRA_PAGE",
 	"RUN_OVER",
+	"REPAIR_RETURN",
 
 	nullptr
 };
@@ -1056,6 +1058,7 @@ private:
 	const CommandButton *m_reverseMoveButton;
 	const CommandButton *m_artillerySlayerButton;
 	const CommandButton *m_runOverButton;
+	const CommandButton *m_repairReturnButton;
 	const CommandButton *m_extraPageMoreButton;
 	const CommandButton *m_extraPageBackButton;
 	Bool m_extraPageShown;					///< the selected unit's panel shows the extra page (reset on selection change)

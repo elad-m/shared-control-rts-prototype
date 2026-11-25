@@ -3127,6 +3127,17 @@ void AIGroup::setRunOverRequestedForGroup(Bool requested, const Coord3D *destina
 	}
 }
 
+void AIGroup::groupRepairReturn()
+{
+	std::list<Object *>::iterator i;
+	for( i = m_memberList.begin(); i != m_memberList.end(); ++i )
+	{
+		AIUpdateInterface *ai = (*i)->getAIUpdateInterface();
+		if (ai)
+			ai->startRepairReturn();
+	}
+}
+
 void AIGroup::releaseWeaponLockForGroup(WeaponLockType lockType)
 {
 	std::list<Object *>::iterator i;

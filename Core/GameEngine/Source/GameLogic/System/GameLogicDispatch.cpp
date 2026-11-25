@@ -575,6 +575,13 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 			}
 			break;
 		}
+		// TheSuperHackers @feature Repair and Return: each selected unit gets fixed the fastest way, then goes back.
+		case GameMessage::MSG_DO_REPAIR_RETURN:
+		{
+			if (currentlySelectedGroup)
+				currentlySelectedGroup->groupRepairReturn();
+			break;
+		}
 #endif
 		// MSG_DO_SALVAGE is intentionally set up to mimic the moveto.
 		case GameMessage::MSG_DO_SALVAGE:

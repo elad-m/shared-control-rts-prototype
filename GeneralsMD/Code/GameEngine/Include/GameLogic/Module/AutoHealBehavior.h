@@ -138,6 +138,13 @@ public:
 	void stopHealing();
 	void undoUpgrade(); ///<pretend like we have not been activated yet, so we can be reactivated later
 
+	// TheSuperHackers @feature Repair and Return: what this module heals and how fast, to estimate repair times.
+	Bool isHealingActive() const { return isUpgradeActive() && !m_stopped; }
+	Bool healsTarget( const Object *target ) const;		///< kinds and self rules only; range is the caller's business
+	Real getHealRadius() const { return getAutoHealBehaviorModuleData()->m_radius; }
+	Real getHealPerFrame() const;
+	UnsignedInt getStartHealingDelay() const { return getAutoHealBehaviorModuleData()->m_startHealingDelay; }
+
 protected:
 
 	virtual void upgradeImplementation() override

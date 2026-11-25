@@ -320,9 +320,12 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 			else if( commandButton->getCommandType() == GUI_COMMAND_RUN_OVER )
 				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
 					L"Move to the clicked spot, swerving on the way to run over enemy soldiers and any vehicles this unit can crush. Stop cancels it. Press again to cancel.");
+			else if( commandButton->getCommandType() == GUI_COMMAND_REPAIR_RETURN )
+				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
+					L"Get fixed the fastest way, then come back here. Heals where it stands if this unit can, otherwise goes to the nearest repair point: repair bay, repair vehicle, barracks or airfield, allies' included. Stop cancels it.");
 			else if( commandButton->getCommandType() == GUI_COMMAND_EXTRA_PAGE )
 				descrip = TheGameText->fetchOrSubstitute(commandButton->getDescriptionLabel().str(),
-					L"Switch between this unit's buttons and the extra page (Artillery Slayer, Reverse Move, Run Over).");
+					L"Switch between this unit's buttons and the extra page (Artillery Slayer, Reverse Move, Run Over, Repair and Return).");
 			else
 			descrip = TheGameText->fetch(commandButton->getDescriptionLabel());
 
@@ -423,6 +426,8 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Reverse Move (Z)");
 		else if( commandButton->getCommandType() == GUI_COMMAND_RUN_OVER )
 			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Run Over");
+		else if( commandButton->getCommandType() == GUI_COMMAND_REPAIR_RETURN )
+			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(), L"Repair and Return");
 		else if( commandButton->getCommandType() == GUI_COMMAND_EXTRA_PAGE )
 			name = TheGameText->fetchOrSubstitute(commandButton->getTextLabel().str(),
 				commandButton->getTextLabel() == "CONTROLBAR:SCExtraPageBack" ? L"Back" : L"More");

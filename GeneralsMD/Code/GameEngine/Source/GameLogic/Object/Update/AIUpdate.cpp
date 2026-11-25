@@ -56,7 +56,11 @@
 #include "GameLogic/AIPathfind.h"
 #include "GameLogic/Locomotor.h"
 #include "GameLogic/Module/AIUpdate.h"
+#include "GameLogic/Module/AutoHealBehavior.h"
 #include "GameLogic/Module/BodyModule.h"
+#include "GameLogic/Module/HealContain.h"
+#include "GameLogic/Module/ParkingPlaceBehavior.h"
+#include "GameLogic/Module/RepairDockUpdate.h"
 #include "GameLogic/Module/ContainModule.h"
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/Module/ProneUpdate.h"
@@ -286,6 +290,12 @@ AIUpdateInterface::AIUpdateInterface( Thing *thing, const ModuleData* moduleData
 	m_runOverChaseStart.zero();
 	m_runOverChaseFrame = 0;
 	m_runOverNextScan = 0;
+	m_repairMode = 0;
+	m_repairPlace = INVALID_ID;
+	m_repairHome.zero();
+	m_repairOrderFrame = 0;
+	m_repairNextCheck = 0;
+	m_repairTries = 0;
 	m_isMoving = FALSE;
 	m_isBlocked = FALSE;
 	m_isBlockedAndStuck = FALSE;
@@ -1240,6 +1250,14 @@ UpdateSleepTime AIUpdateInterface::update()
 	{
 		updateRunOver();
 		subMachineSleep = UPDATE_SLEEP_NONE;
+	}
+
+	// TheSuperHackers @feature Repair and Return: watch the repair, then send the unit back.
+	if (m_repairMode != 0)
+	{
+		updateRepairReturn();
+		if (m_repairMode != 0 && UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4) < subMachineSleep)
+			subMachineSleep = UPDATE_SLEEP(LOGICFRAMES_PER_SECOND / 4);
 	}
 
 	// do this objects movement
@@ -2874,6 +2892,342 @@ void AIUpdateInterface::updateRunOver()
 }
 
 //-------------------------------------------------------------------------------------------------
+// TheSuperHackers @feature Repair and Return.
+//-------------------------------------------------------------------------------------------------
+enum RepairReturnMode CPP_11(: Int)
+{
+	REPAIR_NONE = 0,
+	REPAIR_SELF,			///< healing where it stands
+	REPAIR_DOCK,			///< at a repair dock (War Factory, Arms Dealer, Repair Station, Tech Repair Pad)
+	REPAIR_HEAL_PAD,	///< infantry inside a heal pad (barracks)
+	REPAIR_AIRFIELD,	///< a helicopter landed beside an airfield
+	REPAIR_HEALER,		///< next to something that heals what is near it (Ambulance, Repair Drone, Support Crawler)
+	REPAIR_HOME,			///< fixed, on the way back
+};
+
+static const Real REPAIR_NEVER = 1.0e30f;
+static const Real REPAIR_SEARCH_RANGE = 5000.0f;			///< how far to look for a place to get fixed
+static const Real REPAIR_PATH_FACTOR = 1.3f;					///< paths run longer than straight lines
+static const UnsignedInt REPAIR_DOCK_OVERHEAD = 4 * LOGICFRAMES_PER_SECOND;		///< lining up and docking
+static const UnsignedInt REPAIR_ENTER_OVERHEAD = 2 * LOGICFRAMES_PER_SECOND;	///< walking in and out
+static const UnsignedInt REPAIR_LAND_OVERHEAD = 6 * LOGICFRAMES_PER_SECOND;		///< landing and taking off
+static const Real REPAIR_HEALER_REACH = 0.6f;				///< plan to stop this far into a healer's radius
+static const Real REPAIR_SWITCH_MARGIN = 0.75f;			///< healing in place, leave only for a clearly faster place
+static const UnsignedInt REPAIR_RECHECK_SELF = 3 * LOGICFRAMES_PER_SECOND;
+static const UnsignedInt REPAIR_TRIP_GRACE = 2 * LOGICFRAMES_PER_SECOND;	///< idle this soon after an order is not a failed trip
+static const Int REPAIR_MAX_TRIES = 3;
+
+static Bool isRepairHelicopter(const Object *obj)
+{
+	// Helicopters that land beside an airfield to heal (ChinookAIUpdate, which ShockWave gives all of them).
+	static const NameKeyType key = NAMEKEY("ChinookAIUpdate");
+	return obj->isKindOf(KINDOF_AIRCRAFT) && obj->findUpdateModule(key) != nullptr;
+}
+
+Bool AIUpdateInterface::canRepairReturn(const Object *obj)
+{
+	if (obj == nullptr || obj->getAI() == nullptr || obj->isKindOf(KINDOF_STRUCTURE) || obj->isKindOf(KINDOF_IMMOBILE)
+			|| obj->isKindOf(KINDOF_DRONE) || obj->isKindOf(KINDOF_PROJECTILE))
+		return FALSE;
+	if (obj->isKindOf(KINDOF_AIRCRAFT))
+		return isRepairHelicopter(obj);		// jets fly home and get fixed by themselves
+	return obj->isKindOf(KINDOF_VEHICLE) || obj->isKindOf(KINDOF_INFANTRY);
+}
+
+/** HP per frame the unit heals by itself, and how many frames until that starts (it pauses after damage). */
+static Real selfHealRate(const Object *obj, UnsignedInt *waitFrames)
+{
+	static const NameKeyType key = NAMEKEY("AutoHealBehavior");
+	Real rate = 0.0f;
+	UnsignedInt delay = 0;
+	for (BehaviorModule **m = obj->getBehaviorModules(); *m; ++m)
+	{
+		if ((*m)->getModuleNameKey() != key)
+			continue;
+		const AutoHealBehavior *heal = (const AutoHealBehavior *)(*m);
+		if (!heal->isHealingActive() || !heal->healsTarget(obj))
+			continue;
+		rate += heal->getHealPerFrame();
+		if (heal->getHealRadius() == 0.0f && heal->getStartHealingDelay() > delay)
+			delay = heal->getStartHealingDelay();
+	}
+	const UnsignedInt now = TheGameLogic->getFrame();
+	const UnsignedInt lastDamage = obj->getBodyModule()->getLastDamageTimestamp();
+	*waitFrames = (lastDamage <= now && now - lastDamage < delay) ? delay - (now - lastDamage) : 0;
+	return rate;
+}
+
+/** How close `healer` must be to heal `obj` (0 if it does not), and how fast it heals it. */
+static Real healerReach(const Object *healer, const Object *obj, Real *rate)
+{
+	static const NameKeyType key = NAMEKEY("AutoHealBehavior");
+	Real reach = 0.0f;
+	*rate = 0.0f;
+	if (healer == obj)
+		return 0.0f;
+	for (BehaviorModule **m = healer->getBehaviorModules(); *m; ++m)
+	{
+		if ((*m)->getModuleNameKey() != key)
+			continue;
+		const AutoHealBehavior *heal = (const AutoHealBehavior *)(*m);
+		if (heal->getHealRadius() <= 0.0f || !heal->isHealingActive() || !heal->healsTarget(obj) || heal->getHealPerFrame() <= *rate)
+			continue;
+		*rate = heal->getHealPerFrame();		// healers in range do not add up: the best one heals
+		reach = heal->getHealRadius();
+	}
+	return reach;
+}
+
+void AIUpdateInterface::startRepairReturn()
+{
+	Object *me = getObject();
+	if (!canRepairReturn(me) || isAiInDeadState() || me->getContainedBy() != nullptr)
+		return;
+	stopRepairReturn();
+	m_repairHome = *me->getPosition();
+	m_repairTries = 0;
+	m_repairNextCheck = 0;
+	if (planRepair(FALSE))
+		wakeUpNow();
+}
+
+/** Picks whatever gets the unit fixed and back soonest and starts on it. While healing in place
+	* (switchFromSelf) it only leaves for a clearly faster place. FALSE when there is nothing to do. */
+Bool AIUpdateInterface::planRepair(Bool switchFromSelf)
+{
+	Object *me = getObject();
+	BodyModuleInterface *body = me->getBodyModule();
+	const Real maxHealth = body->getMaxHealth();
+	const Real missing = maxHealth - body->getHealth();
+	if (missing <= 0.0f || maxHealth <= 0.0f)
+	{
+		stopRepairReturn();
+		return FALSE;
+	}
+
+	UnsignedInt wait = 0;
+	const Real selfRate = selfHealRate(me, &wait);
+	const Real selfFrames = selfRate > 0.0f ? wait + missing / selfRate : REPAIR_NEVER;
+	Real bestFrames = selfFrames;
+	Int bestMode = selfRate > 0.0f ? REPAIR_SELF : REPAIR_NONE;
+	Object *best = nullptr;
+
+	const Real speed = getCurLocomotorSpeed();
+	if (speed > 0.0f && me->isMobile())
+	{
+		static const NameKeyType dockKey = NAMEKEY("RepairDockUpdate");
+		static const NameKeyType padKey = NAMEKEY("HealContain");
+		static const NameKeyType airfieldKey = NAMEKEY("ParkingPlaceBehavior");
+		const Bool helicopter = isRepairHelicopter(me);
+		const Bool infantry = me->isKindOf(KINDOF_INFANTRY);
+		const Bool groundVehicle = me->isKindOf(KINDOF_VEHICLE) && !me->isKindOf(KINDOF_AIRCRAFT);
+
+		PartitionFilterRelationship allies(me, PartitionFilterRelationship::ALLOW_ALLIES);
+		PartitionFilterAlive alive;
+		PartitionFilterSameMapStatus mapStatus(me);
+		PartitionFilter *filters[] = { &allies, &alive, &mapStatus, nullptr };
+		ObjectIterator *iter = ThePartitionManager->iterateObjectsInRange(me->getPosition(), REPAIR_SEARCH_RANGE, FROM_CENTER_2D, filters);
+		MemoryPoolObjectHolder hold(iter);
+		for (Object *other = iter->first(); other; other = iter->next())
+		{
+			if (other == me || other->isEffectivelyDead())
+				continue;
+			const Real dist = sqrt(ThePartitionManager->getDistanceSquared(me, other, FROM_CENTER_2D));
+			// there and back again
+			const Real roundTrip = 2.0f * dist * REPAIR_PATH_FACTOR / speed;
+			Real frames = REPAIR_NEVER;
+			Int mode = REPAIR_NONE;
+			if (groundVehicle && other->isKindOf(KINDOF_REPAIR_PAD) && TheActionManager->canGetRepairedAt(me, other, CMD_FROM_PLAYER))
+			{
+				const RepairDockUpdate *dock = (const RepairDockUpdate *)other->findUpdateModule(dockKey);
+				if (dock)
+				{
+					frames = roundTrip + dock->getFramesForFullHeal() + REPAIR_DOCK_OVERHEAD;
+					mode = REPAIR_DOCK;
+				}
+			}
+			else if (infantry && other->isKindOf(KINDOF_HEAL_PAD) && TheActionManager->canGetHealedAt(me, other, CMD_FROM_PLAYER)
+					&& TheActionManager->canEnterObject(me, other, CMD_FROM_PLAYER, CHECK_CAPACITY))
+			{
+				const HealContain *pad = (const HealContain *)other->findUpdateModule(padKey);
+				if (pad)
+				{
+					frames = roundTrip + missing / maxHealth * pad->getFramesForFullHeal() + REPAIR_ENTER_OVERHEAD;
+					mode = REPAIR_HEAL_PAD;
+				}
+			}
+			else if (helicopter && other->isKindOf(KINDOF_FS_AIRFIELD) && TheActionManager->canGetRepairedAt(me, other, CMD_FROM_PLAYER))
+			{
+				const ParkingPlaceBehavior *pp = (const ParkingPlaceBehavior *)other->findUpdateModule(airfieldKey);
+				if (pp && pp->getHealAmountPerSecond() > 0.0f)
+				{
+					frames = roundTrip + missing / (pp->getHealAmountPerSecond() * SECONDS_PER_LOGICFRAME_REAL) + REPAIR_LAND_OVERHEAD;
+					mode = REPAIR_AIRFIELD;
+				}
+			}
+			// Anything that heals what is near it: drive into its radius and wait there.
+			Real rate = 0.0f;
+			const Real reach = healerReach(other, me, &rate);
+			if (reach > 0.0f && rate > 0.0f)
+			{
+				const Real gap = dist > reach * REPAIR_HEALER_REACH ? dist - reach * REPAIR_HEALER_REACH : 0.0f;
+				const Real healerFrames = 2.0f * gap * REPAIR_PATH_FACTOR / speed + missing / rate;
+				if (healerFrames < frames)
+				{
+					frames = healerFrames;
+					mode = REPAIR_HEALER;
+				}
+			}
+			if (mode != REPAIR_NONE && frames < bestFrames)
+			{
+				bestFrames = frames;
+				bestMode = mode;
+				best = other;
+			}
+		}
+	}
+
+	if (switchFromSelf && (bestMode == REPAIR_SELF || bestFrames >= selfFrames * REPAIR_SWITCH_MARGIN))
+		return TRUE;		// keep healing where it is
+
+	m_repairMode = bestMode;
+	m_repairPlace = best ? best->getID() : INVALID_ID;
+	m_repairOrderFrame = TheGameLogic->getFrame();
+	switch (bestMode)
+	{
+		case REPAIR_SELF:
+			aiIdle(CMD_FROM_AI);		// stop and heal here
+			break;
+		case REPAIR_DOCK:
+		case REPAIR_AIRFIELD:
+			aiGetRepaired(best, CMD_FROM_AI);
+			break;
+		case REPAIR_HEAL_PAD:
+			aiGetHealed(best, CMD_FROM_AI);
+			break;
+		case REPAIR_HEALER:
+		{
+			Real rate = 0.0f;
+			const Real reach = healerReach(best, me, &rate);
+			Coord3D to = *best->getPosition();
+			const Real dx = me->getPosition()->x - to.x;
+			const Real dy = me->getPosition()->y - to.y;
+			const Real len = sqrt(dx * dx + dy * dy);
+			if (len > reach * 0.5f && len > 0.0f)
+			{
+				to.x += dx / len * reach * 0.5f;
+				to.y += dy / len * reach * 0.5f;
+				aiMoveToPosition(&to, CMD_FROM_AI);
+			}
+			else
+				aiIdle(CMD_FROM_AI);		// already in reach
+			break;
+		}
+		default:
+			stopRepairReturn();		// no way to get fixed
+			return FALSE;
+	}
+	return TRUE;
+}
+
+void AIUpdateInterface::updateRepairReturn()
+{
+	const UnsignedInt now = TheGameLogic->getFrame();
+	if (now < m_repairNextCheck)
+		return;
+	m_repairNextCheck = now + LOGICFRAMES_PER_SECOND / 2;
+
+	Object *me = getObject();
+	if (isAiInDeadState() || me->isEffectivelyDead())
+	{
+		stopRepairReturn();
+		return;
+	}
+	if (m_repairMode == REPAIR_HOME)
+	{
+		if (isIdle())
+			stopRepairReturn();		// back, or as close as it got
+		return;
+	}
+
+	BodyModuleInterface *body = me->getBodyModule();
+	if (body->getHealth() >= body->getMaxHealth())
+	{
+		if (m_repairMode == REPAIR_SELF)
+		{
+			stopRepairReturn();		// it never left
+			return;
+		}
+		if (me->getContainedBy() != nullptr)
+			return;		// still walking out of the barracks
+		m_repairMode = REPAIR_HOME;
+		m_repairPlace = INVALID_ID;
+		const Coord3D home = m_repairHome;
+		aiMoveToPosition(&home, CMD_FROM_AI);
+		return;
+	}
+
+	Object *place = TheGameLogic->findObjectByID(m_repairPlace);
+	Bool replan = FALSE;
+	switch (m_repairMode)
+	{
+		case REPAIR_SELF:
+			// It may keep getting hit and never start healing: look again now and then.
+			if (now - m_repairOrderFrame >= REPAIR_RECHECK_SELF)
+			{
+				m_repairOrderFrame = now;
+				planRepair(TRUE);
+			}
+			break;
+
+		case REPAIR_HEALER:
+		{
+			Real rate = 0.0f;
+			const Real reach = place ? healerReach(place, me, &rate) : 0.0f;
+			if (place == nullptr || place->isEffectivelyDead() || reach <= 0.0f)
+				replan = TRUE;
+			else
+			{
+				// Keep up with a healer that moves.
+				const Real distSqr = ThePartitionManager->getDistanceSquared(me, place, FROM_CENTER_2D);
+				if (distSqr > sqr(reach * 0.85f) && (isIdle() || now - m_repairOrderFrame > 2 * LOGICFRAMES_PER_SECOND))
+				{
+					Coord3D to = *place->getPosition();
+					const Real dx = me->getPosition()->x - to.x;
+					const Real dy = me->getPosition()->y - to.y;
+					const Real len = sqrt(dx * dx + dy * dy);
+					if (len > 0.0f)
+					{
+						to.x += dx / len * reach * 0.5f;
+						to.y += dy / len * reach * 0.5f;
+					}
+					m_repairOrderFrame = now;
+					aiMoveToPosition(&to, CMD_FROM_AI);
+				}
+			}
+			break;
+		}
+
+		default:		// dock, heal pad, airfield
+			if (place == nullptr || place->isEffectivelyDead() || me->getRelationship(place) != ALLIES)
+				replan = TRUE;
+			else if (me->getContainedBy() != nullptr || (m_repairMode == REPAIR_AIRFIELD && !me->isAboveTerrain()))
+				break;		// inside, or landed beside the airfield: healing
+			else if (isIdle() && now - m_repairOrderFrame > REPAIR_TRIP_GRACE)
+				replan = TRUE;		// the trip ended without a repair (no room, no way there)
+			break;
+	}
+
+	if (replan)
+	{
+		if (++m_repairTries > REPAIR_MAX_TRIES)
+			stopRepairReturn();
+		else
+			planRepair(FALSE);
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
 void AIUpdateInterface::aiDoCommand(const AICommandParms* parms)
 {
 	// TheSuperHackers @info The AiCommandParms for m_obj, m_otherObj and m_team should be null tested before use.
@@ -2889,6 +3243,9 @@ void AIUpdateInterface::aiDoCommand(const AICommandParms* parms)
 	// TheSuperHackers @feature And ends a run-over move (a new run-over order starts again on its move).
 	m_runOverActive = FALSE;
 	m_runOverVictim = INVALID_ID;
+	// TheSuperHackers @feature A player's (or script's) order ends Repair and Return; its own trips are CMD_FROM_AI.
+	if (parms->m_cmdSource == CMD_FROM_PLAYER || parms->m_cmdSource == CMD_FROM_SCRIPT)
+		stopRepairReturn();
 
 #ifdef ALLOW_SURRENDER
 	// surrendered items have very limited options, and only via AI cmds

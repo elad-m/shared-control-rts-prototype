@@ -245,12 +245,12 @@ def tank(layer, cam):
     tur = [transform(f, yaw=yaw, move=tc) for f in tur]
     tur = [T(f) for f in tur]
     # barrels go first so the turret front covers their roots
-    for dy in (-0.42, 0.42):
+    for dy, r in BARRELS:
         a = T(transform([(1.6, dy, 0.62)], yaw=yaw, move=tc))[0]
         b = T(transform([(8.5, dy, 0.62)], yaw=yaw, move=tc))[0]
         m = T(transform([(7.4, dy, 0.62)], yaw=yaw, move=tc))[0]
-        solid(layer, cam, cylinder(a, b, 0.14), OLIVE_DARK, 300 + int(dy * 10), grime=0.1, outline=0.6)
-        solid(layer, cam, cylinder(m, b, 0.21), STEEL, 310 + int(dy * 10), grime=0.1, outline=0.6)
+        solid(layer, cam, cylinder(a, b, r), OLIVE_DARK, 300 + int(dy * 10), grime=0.1, outline=0.6)
+        solid(layer, cam, cylinder(m, b, r * 1.5), STEEL, 310 + int(dy * 10), grime=0.1, outline=0.6)
     solid(layer, cam, tur, OLIVE, 320, grime=0.4, camo=CAMO)
     cupola = [T(transform(f, yaw=yaw, move=tc)) for f in frustum(-1.3, -0.3, -0.95, 0.05, 1.05, 0.1, 1.35)]
     solid(layer, cam, cupola, OLIVE_DARK, 340, grime=0.3)
@@ -386,6 +386,7 @@ def ground():
 ENEMY_Y = (-0.4, 1.75)           # under the near half of the tank; its near track rides the enemy hull
 SPARKS_AT = (6.4, 1.8, 0.8)
 TURRET_YAW = -25                 # barrels over the enemy tank, slightly away from the camera
+BARRELS = ((-0.42, 0.14), (0.42, 0.14))   # (sideways offset, radius) of each gun barrel: twin, like an Overlord
 CAM_EYE = (13.5, 11.5, 0.5)      # low, off the front left of the tank (mirrored to front right)
 CAM_TARGET = (6.5, 0.0, 1.4)
 CAM_ZOOM = 125.0

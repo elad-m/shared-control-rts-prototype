@@ -689,6 +689,12 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 				}
 			}
 			break;
+
+		// TheSuperHackers @feature Repair and Return: no target to pick, the selected units go at once.
+		case GUI_COMMAND_REPAIR_RETURN:
+			TheMessageStream->appendMessage(GameMessage::MSG_DO_REPAIR_RETURN);
+			pickAndPlayUnitVoiceResponse(TheInGameUI->getAllSelectedDrawables(), GameMessage::MSG_DO_MOVETO);
+			break;
 #endif
 
 		//---------------------------------------------------------------------------------------------

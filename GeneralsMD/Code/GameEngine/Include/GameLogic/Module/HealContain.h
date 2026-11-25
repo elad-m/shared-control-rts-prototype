@@ -65,6 +65,8 @@ public:
 	virtual Bool isHealContain() const override { return true; } ///< true when container only contains units while healing (not a transport!)
 	virtual Bool isTunnelContain() const override { return FALSE; }
 
+	UnsignedInt getFramesForFullHeal() const { return getHealContainModuleData()->m_framesForFullHeal; }	///< TheSuperHackers @feature for Repair and Return
+
 protected:
 
 	Bool doHeal( Object *obj, UnsignedInt framesForFullHeal );		///< do the heal on an object

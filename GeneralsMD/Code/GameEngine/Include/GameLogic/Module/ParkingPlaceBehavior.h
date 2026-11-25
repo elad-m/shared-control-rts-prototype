@@ -146,6 +146,7 @@ public:
 	virtual Real getApproachHeight() const override { return getParkingPlaceBehaviorModuleData()->m_approachHeight; }
 	virtual Real getLandingDeckHeightOffset() const override { return getParkingPlaceBehaviorModuleData()->m_landingDeckHeightOffset; }
 	virtual void setHealee(Object* healee, Bool add) override;
+	Real getHealAmountPerSecond() const { return getParkingPlaceBehaviorModuleData()->m_healAmount; }	///< TheSuperHackers @feature for Repair and Return
 	virtual void killAllParkedUnits() override;
 	virtual void defectAllParkedUnits(Team* newTeam, UnsignedInt detectionTime) override;
 	virtual Bool calcBestParkingAssignment( ObjectID id, Coord3D *pos, Int *oldIndex = nullptr, Int *newIndex = nullptr ) override { return FALSE; }

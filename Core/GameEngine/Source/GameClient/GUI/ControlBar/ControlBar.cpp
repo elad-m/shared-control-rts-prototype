@@ -60,6 +60,9 @@
 #include "GameLogic/Module/SpecialPowerModule.h"
 #include "GameLogic/Module/StealthUpdate.h"
 #include "GameLogic/Module/RebuildHoleBehavior.h"
+#if RTS_ZEROHOUR
+#include "GameLogic/Module/AIUpdate.h"	// TheSuperHackers @feature AIUpdateInterface::canRepairReturn
+#endif
 #include "GameLogic/ScriptEngine.h"
 
 #include "GameClient/AnimateWindowManager.h"
@@ -886,6 +889,7 @@ ControlBar::ControlBar()
 	m_reverseMoveButton = nullptr;
 	m_artillerySlayerButton = nullptr;
 	m_runOverButton = nullptr;
+	m_repairReturnButton = nullptr;
 	m_extraPageMoreButton = nullptr;
 	m_extraPageBackButton = nullptr;
 	m_extraPageShown = FALSE;
@@ -2154,6 +2158,12 @@ void ControlBar::createExtraMoveButtons()
 	runOver->friend_copyLookFrom( attackMove );
 	m_runOverButton = runOver;
 
+	CommandButton *repairReturn = newCommandButton( "SCCommand_RepairReturn" );
+	repairReturn->friend_setCommandType( GUI_COMMAND_REPAIR_RETURN );
+	repairReturn->friend_setLabels( "CONTROLBAR:SCRepairReturn", "CONTROLBAR:TooltipSCRepairReturn" );
+	repairReturn->friend_copyLookFrom( stop );
+	m_repairReturnButton = repairReturn;
+
 	CommandButton *more = newCommandButton( "SCCommand_ExtraPageMore" );
 	more->friend_setCommandType( GUI_COMMAND_EXTRA_PAGE );
 	more->friend_setLabels( "CONTROLBAR:SCExtraPageMore", "CONTROLBAR:TooltipSCExtraPageMore" );
@@ -2175,6 +2185,7 @@ void ControlBar::createExtraMoveButtons()
 		{ slayer, nullptr, "SCArtillerySlayer.tga", "SCArtillerySlayerButton" },
 		{ reverse, nullptr, "SCReverseMove.tga", "SCReverseMoveButton" },
 		{ runOver, nullptr, "SCRunOver.tga", "SCRunOverButton" },
+		{ repairReturn, nullptr, "SCRepairReturn.tga", "SCRepairReturnButton" },
 		{ more, "SSChinaCommandSetDown", "SCPageMore.tga", "SCPageMoreButton" },
 		{ back, "SSChinaCommandSetUp", "SCPageBack.tga", "SCPageBackButton" },
 	};
@@ -2267,6 +2278,7 @@ void ControlBar::addExtraMoveCommandsToMultiSelect()
 
 	Bool allGroundVehicles = TRUE;
 	Bool anyCrusher = FALSE;
+	Bool anyRepairable = FALSE;
 	const DrawableList *selected = TheInGameUI->getAllSelectedDrawables();
 	for( DrawableListCIt it = selected->begin(); it != selected->end(); ++it )
 	{
@@ -2277,10 +2289,13 @@ void ControlBar::addExtraMoveCommandsToMultiSelect()
 			allGroundVehicles = FALSE;
 		if( canRunOver( obj ) )
 			anyCrusher = TRUE;
+		if( AIUpdateInterface::canRepairReturn( obj ) )
+			anyRepairable = TRUE;
 	}
 
 	// Run over when any selected unit can crush, attack move or not; the others just make the move.
-	const CommandButton *extra[ 3 ];
+	// Repair and Return likewise when any of them can use it.
+	const CommandButton *extra[ 4 ];
 	Int extraCount = 0;
 	if( hasAttackMove )
 		extra[ extraCount++ ] = m_artillerySlayerButton;
@@ -2288,6 +2303,8 @@ void ControlBar::addExtraMoveCommandsToMultiSelect()
 		extra[ extraCount++ ] = m_reverseMoveButton;
 	if( anyCrusher && m_runOverButton )
 		extra[ extraCount++ ] = m_runOverButton;
+	if( anyRepairable && m_repairReturnButton )
+		extra[ extraCount++ ] = m_repairReturnButton;
 	Int order[ UI_SLOTS ];
 	const Int orderCount = getExtraSlotOrder( attackMoveSlot, order );
 	Int next = 0;
@@ -2352,13 +2369,14 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 	// they crush; it goes where attack move usually sits.
 	const Bool hasAttackMove = attackMoveSlot >= 0;
 	const Bool withRunOver = m_runOverButton != nullptr && canRunOver( obj );
-	if( !hasAttackMove && !withRunOver )
+	const Bool withRepair = m_repairReturnButton != nullptr && AIUpdateInterface::canRepairReturn( obj );
+	if( !hasAttackMove && !withRunOver && !withRepair )
 		return set;
 	if( !hasAttackMove )
 		attackMoveSlot = USUAL_ATTACK_MOVE_SLOT;
 
 	const Bool withReverse = hasAttackMove && obj->isKindOf( KINDOF_VEHICLE ) && !obj->isKindOf( KINDOF_AIRCRAFT );
-	const CommandButton *extra[ 3 ];
+	const CommandButton *extra[ 4 ];
 	Int extraCount = 0;
 	if( hasAttackMove )
 		extra[ extraCount++ ] = m_artillerySlayerButton;
@@ -2366,6 +2384,8 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 		extra[ extraCount++ ] = m_reverseMoveButton;
 	if( withRunOver )
 		extra[ extraCount++ ] = m_runOverButton;
+	if( withRepair )
+		extra[ extraCount++ ] = m_repairReturnButton;
 
 	Int order[ UI_SLOTS ];
 	const Int orderCount = getExtraSlotOrder( attackMoveSlot, order );
@@ -2390,7 +2410,7 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 
 	const Bool fits = freeCount >= extraCount;
 	const Bool page2 = !fits && m_extraPageShown;
-	const std::pair<const CommandSet*, Int> key( set, ( withReverse ? 1 : 0 ) | ( withRunOver ? 8 : 0 ) | ( fits ? 0 : ( page2 ? 4 : 2 ) ) | ( extraCount << 4 ) );
+	const std::pair<const CommandSet*, Int> key( set, ( withReverse ? 1 : 0 ) | ( withRunOver ? 8 : 0 ) | ( withRepair ? 16 : 0 ) | ( fits ? 0 : ( page2 ? 4 : 2 ) ) | ( extraCount << 8 ) );
 	std::map<std::pair<const CommandSet*, Int>, CommandSet*>::iterator found = m_extraMoveSets.find( key );
 	if( found != m_extraMoveSets.end() )
 		return found->second;
@@ -2431,9 +2451,10 @@ const CommandSet *ControlBar::findCommandSetForObject( const Object *obj )
 				copy->friend_setCommandButton( i, nullptr );
 			if( pageSlot >= 0 )
 				copy->friend_setCommandButton( pageSlot, m_extraPageBackButton );
-			const CommandButton *items[ 4 ] = { extraCount > 0 ? extra[ 0 ] : nullptr, extraCount > 1 ? extra[ 1 ] : nullptr, extraCount > 2 ? extra[ 2 ] : nullptr, displaced };
+			const CommandButton *items[ 5 ] = { extraCount > 0 ? extra[ 0 ] : nullptr, extraCount > 1 ? extra[ 1 ] : nullptr,
+				extraCount > 2 ? extra[ 2 ] : nullptr, extraCount > 3 ? extra[ 3 ] : nullptr, displaced };
 			Int k = 0;
-			for( Int n = 0; n < 4; n++ )
+			for( Int n = 0; n < 5; n++ )
 			{
 				if( items[ n ] == nullptr )
 					continue;
@@ -2907,6 +2928,8 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 		GadgetButtonSetBorder(button, GameMakeColor(255, 255, 255, 255));
 	else if( commandButton->getCommandType() == GUI_COMMAND_RUN_OVER )
 		GadgetButtonSetBorder(button, GameMakeColor(226, 44, 32, 255));
+	else if( commandButton->getCommandType() == GUI_COMMAND_REPAIR_RETURN )
+		GadgetButtonSetBorder(button, GameMakeColor(74, 206, 92, 255));
 
 	if (TheHotKeyManager)
 	{
